@@ -1,7 +1,7 @@
 """
 Schémas Pydantic pour le module d'audit site web.
 """
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 
 class AuditSiteWebRequest(BaseModel):
@@ -24,3 +24,4 @@ class AuditSiteWebResponse(BaseModel):
     max_total: int
     grade: str
     criteria: list[AuditCriterion]
+    saved: bool = False

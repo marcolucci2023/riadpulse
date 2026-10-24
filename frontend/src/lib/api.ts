@@ -1,6 +1,5 @@
 /**
  * Client API pour RiadPulse.
- * NE JAMAIS mettre de clé API ici (frontend public).
  */
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -22,12 +21,28 @@ export interface AuditSiteWebResponse {
   max_total: number;
   grade: string;
   criteria: AuditCriterion[];
+  saved: boolean;
 }
 
 export interface AuthResponse {
   access_token: string;
   token_type: string;
   email: string;
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  if (token) {
+    return {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  }
+  return {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
 }
 
 export async function checkHealth(): Promise<HealthResponse> {
@@ -43,10 +58,7 @@ export async function checkHealth(): Promise<HealthResponse> {
 export async function runSiteAudit(url: string): Promise<AuditSiteWebResponse> {
   const res = await fetch(`${API_URL}/api/v1/audit/site-web`, {
     method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
+    headers: authHeaders(),
     mode: "cors",
     body: JSON.stringify({ url }),
   });
@@ -57,13 +69,22 @@ export async function runSiteAudit(url: string): Promise<AuditSiteWebResponse> {
   return res.json();
 }
 
+export async function getMyAudits(): Promise<AuditSiteWebResponse[]> {
+  const res = await fetch(`${API_URL}/api/v1/audits/`, {
+    method: "GET",
+    headers: authHeaders(),
+    mode: "cors",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch audits: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function registerUser(email: string, password: string): Promise<AuthResponse> {
   const res = await fetch(`${API_URL}/api/v1/auth/register`, {
     method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
     mode: "cors",
     body: JSON.stringify({ email, password }),
   });
@@ -77,10 +98,7 @@ export async function registerUser(email: string, password: string): Promise<Aut
 export async function loginUser(email: string, password: string): Promise<AuthResponse> {
   const res = await fetch(`${API_URL}/api/v1/auth/login`, {
     method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
     mode: "cors",
     body: JSON.stringify({ email, password }),
   });

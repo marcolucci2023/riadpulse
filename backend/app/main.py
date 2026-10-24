@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1.routes import audit, auth
+from app.api.v1.routes import audit, audits, auth
 
 
 @asynccontextmanager
@@ -33,6 +33,7 @@ app.add_middleware(
 )
 
 app.include_router(audit.router)
+app.include_router(audits.router)
 app.include_router(auth.router)
 
 
