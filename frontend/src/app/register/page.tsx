@@ -1,0 +1,133 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { registerUser, saveToken } from "@/lib/api";
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    if (password !== confirm) {
+      setError("Les mots de passe ne correspondent pas.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Le mot de passe doit faire au moins 6 caractères.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const data = await registerUser(email, password);
+      saveToken(data.access_token, data.email);
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur inconnue");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-[#1B2A4A] to-[#0F1A2E] text-white flex items-center justify-center px-6">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <Link href="/" className="flex items-center justify-center gap-3 mb-10">
+          <div className="w-12 h-12 bg-[#C2452D] rounded-lg flex items-center justify-center font-bold text-2xl">
+            R
+          </div>
+          <span className="text-3xl font-bold">
+            Riad<span className="text-[#D4A843]">Pulse</span>
+          </span>
+        </Link>
+
+        {/* Card */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-8">
+          <h1 className="text-2xl font-bold text-center mb-2">Créer un compte</h1>
+          <p className="text-white/50 text-center text-sm mb-8">
+            Commencez à auditer votre riad gratuitement
+          </p>
+
+          {error && (
+            <div className="bg-red-900/30 border border-red-500/30 rounded-lg px-4 py-3 text-red-300 text-sm mb-6">
+              ❌ {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="vous@votre-riad.ma"
+                required
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-[#D4A843] transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Minimum 6 caractères"
+                required
+                minLength={6}
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-[#D4A843] transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-2">
+                Confirmer le mot de passe
+              </label>
+              <input
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={6}
+                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/40 focus:outline-none focus:border-[#D4A843] transition"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 rounded-xl bg-[#C2452D] hover:bg-[#A83A25] disabled:opacity-50 transition font-bold text-lg"
+            >
+              {loading ? "Création..." : "Créer mon compte"}
+            </button>
+          </form>
+
+          <p className="text-center text-white/50 text-sm mt-6">
+            Déjà un compte ?{" "}
+            <Link href="/login" className="text-[#D4A843] hover:underline font-medium">
+              Se connecter
+            </Link>
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
