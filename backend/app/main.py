@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.api.v1.routes import audit
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -22,11 +23,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# === Routes ===
+app.include_router(audit.router)
 
-# === Routes de base ===
+
 @app.get("/")
 async def root():
-    """Point d'entrée racine : juste pour vérifier que l'API répond."""
     return {
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
@@ -37,5 +39,4 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Health check : utilisé par Vercel, Cloudflare et le monitoring."""
     return {"status": "ok"}
