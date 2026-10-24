@@ -1,20 +1,29 @@
 """
 Point d'entrée de l'API RiadPulse.
-Démarrage : .venv/Scripts/python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 """
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.v1.routes import audit
+from app.core.database import init_db
+from app.api.v1.routes import audit, auth
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="API d'audit digital pour riads et hôtels indépendants au Maroc.",
+    lifespan=lifespan,
 )
 
-# === CORS ===
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
@@ -23,8 +32,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# === Routes ===
 app.include_router(audit.router)
+app.include_router(auth.router)
 
 
 @app.get("/")
