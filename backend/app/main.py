@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import init_db
-from app.api.v1.routes import audit, audits, auth, pricing
+from app.api.v1.routes import audit, audits, auth, pricing, reputation
 
 
 @asynccontextmanager
@@ -36,6 +36,7 @@ app.include_router(audit.router)
 app.include_router(audits.router)
 app.include_router(auth.router)
 app.include_router(pricing.router)
+app.include_router(reputation.router)
 
 
 @app.get("/")
