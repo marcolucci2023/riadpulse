@@ -1,4 +1,6 @@
 import Link from "next/link";
+import BackendStatus from "@/components/BackendStatus";
+import Footer from "@/components/Footer";
 
 const features = [
   {
@@ -61,6 +63,9 @@ export default function Home() {
           </Link>
         </nav>
       </header>
+
+      {/* Backend Status */}
+      <BackendStatus />
 
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-6 pt-16 pb-24 text-center">
@@ -144,9 +149,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 py-8 text-center text-white/40 text-sm">
-        © {new Date().getFullYear()} RiadPulse — Fait au Maroc 🇲🇦
-      </footer>
+      <Footer />
     </main>
   );
 }
