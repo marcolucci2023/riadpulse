@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+:root {
+  --color-terracotta: #C2452D;
+  --color-terracotta-dark: #A83A25;
+  --color-navy: #1B2A4A;
+  --color-navy-dark: #0F1A2E;
+  --color-gold: #D4A843;
+  --color-gold-light: #E8C76A;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
