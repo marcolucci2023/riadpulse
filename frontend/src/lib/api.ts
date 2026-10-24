@@ -1,29 +1,46 @@
-/**
- * Client API pour RiadPulse.
- * Ne jamais mettre de secrets ou clés API dans ce fichier.
- */
+const API_URL = "http://localhost:8000";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// ==================== TOKEN & AUTH UTILS ====================
 
-export interface HealthResponse {
-  status: string;
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("token");
 }
 
-export interface AuditCriterion {
-  name: string;
-  score: number;
-  max_score: number;
-  detail: string;
+export function getEmail(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("user_email");
 }
 
-export interface AuditSiteWebResponse {
-  url: string;
-  total_score: number;
-  max_total: number;
-  grade: string;
-  criteria: AuditCriterion[];
-  saved: boolean;
+export function isAuthenticated(): boolean {
+  return !!getToken();
 }
+
+export function logout() {
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user_email");
+  }
+}
+
+async function authFetch(url: string, options: RequestInit = {}) {
+  const token = getToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string> || {}),
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(url, { ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Erreur ${res.status}`);
+  }
+  return res.json();
+}
+
+// ==================== AUTH ====================
 
 export interface AuthResponse {
   access_token: string;
@@ -31,236 +48,125 @@ export interface AuthResponse {
   email: string;
 }
 
-export interface PricingBenchmark {
-  city: string;
-  stars: number;
-  low_price: number;
-  median_price: number;
-  high_price: number;
-  source: string;
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  const res = await fetch(`${API_URL}/api/v1/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Erreur de connexion");
+  }
+  return res.json();
 }
+
+export async function register(email: string, password: string): Promise<AuthResponse> {
+  const res = await fetch(`${API_URL}/api/v1/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Erreur d'inscription");
+  }
+  return res.json();
+}
+
+// ==================== SITE WEB ====================
+
+export interface SiteWebCriteria {
+  https: { score: number; max: number; detail: string };
+  speed: { score: number; max: number; detail: string };
+  responsive: { score: number; max: number; detail: string };
+  tech: { score: number; max: number; detail: string };
+}
+
+export interface SiteWebResult {
+  url: string;
+  total_score: number;
+  max_total: number;
+  grade: string;
+  criteria: SiteWebCriteria;
+}
+
+export async function auditSiteWeb(url: string): Promise<SiteWebResult> {
+  return authFetch(`${API_URL}/api/v1/audit/site-web`, {
+    method: "POST",
+    body: JSON.stringify({ url }),
+  });
+}
+
+// ==================== PRICING ====================
 
 export interface PricingRecommendation {
   title: string;
   detail: string;
   impact_mad: number;
+  difficulty: string;
 }
 
-export interface PricingAuditResponse {
+export interface PricingResult {
   riad_name: string;
   city: string;
-  my_price: number;
-  benchmark: PricingBenchmark;
-  positioning: string;
-  positioning_detail: string;
-  gap_percent: number;
-  gap_mad_per_night: number;
-  estimated_annual_loss_mad: number;
-  estimated_annual_loss_eur: number;
+  stars: number;
+  current_price_mad: number;
+  benchmark_price_mad: number;
+  price_gap_percent: number;
+  annual_loss_mad: number;
+  annual_loss_eur: number;
+  occupancy_rate: number;
+  num_rooms: number;
   recommendations: PricingRecommendation[];
 }
 
-export interface ReputationCriterion {
-  name: string;
+export async function auditPricing(data: {
+  riad_name: string;
+  city: string;
+  stars: number;
+  current_price_mad: number;
+  num_rooms: number;
+  occupancy_rate: number;
+}): Promise<PricingResult> {
+  return authFetch(`${API_URL}/api/v1/audit/pricing`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// ==================== REPUTATION ====================
+
+export interface PlatformScore {
+  platform: string;
   score: number;
   max_score: number;
-  detail: string;
+  normalized: number;
+  review_count: number;
+  color: string;
 }
 
 export interface ReputationRecommendation {
   title: string;
   detail: string;
-  priority: string;
   impact_points: number;
+  difficulty: string;
 }
 
-export interface ReputationAuditResponse {
+export interface ReputationResult {
   riad_name: string;
   city: string;
   total_score: number;
   max_total: number;
   grade: string;
-  total_reviews: number;
-  avg_platform_score: number;
-  benchmark_avg: number;
-  benchmark_source: string;
-  criteria: ReputationCriterion[];
+  platforms: PlatformScore[];
+  response_rate_percent: number;
   strengths: string[];
   weaknesses: string[];
   recommendations: ReputationRecommendation[];
 }
 
-function authHeaders(): Record<string, string> {
-  const token = getToken();
-
-  if (token) {
-    return {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    };
-  }
-
-  return {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  };
-}
-
-export async function checkHealth(): Promise<HealthResponse> {
-  const res = await fetch(`${API_URL}/health`, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-    mode: "cors",
-  });
-
-  if (!res.ok) {
-    throw new Error(`Health check failed: ${res.status}`);
-  }
-
-  return res.json();
-}
-
-export async function runSiteAudit(
-  url: string
-): Promise<AuditSiteWebResponse> {
-  const res = await fetch(`${API_URL}/api/v1/audit/site-web`, {
-    method: "POST",
-    headers: authHeaders(),
-    mode: "cors",
-    body: JSON.stringify({ url }),
-  });
-
-  if (!res.ok) {
-    const error = await res
-      .json()
-      .catch(() => ({ detail: "Erreur inconnue" }));
-
-    throw new Error(error.detail || `Audit failed: ${res.status}`);
-  }
-
-  return res.json();
-}
-
-export async function getMyAudits(): Promise<AuditSiteWebResponse[]> {
-  const res = await fetch(`${API_URL}/api/v1/audits/`, {
-    method: "GET",
-    headers: authHeaders(),
-    mode: "cors",
-  });
-
-  if (!res.ok) {
-    throw new Error(`Impossible de récupérer les audits : ${res.status}`);
-  }
-
-  return res.json();
-}
-
-export async function registerUser(
-  email: string,
-  password: string
-): Promise<AuthResponse> {
-  const res = await fetch(`${API_URL}/api/v1/auth/register`, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    mode: "cors",
-    body: JSON.stringify({ email, password }),
-  });
-
-  if (!res.ok) {
-    const error = await res
-      .json()
-      .catch(() => ({ detail: "Erreur inconnue" }));
-
-    throw new Error(error.detail || `Register failed: ${res.status}`);
-  }
-
-  return res.json();
-}
-
-export async function loginUser(
-  email: string,
-  password: string
-): Promise<AuthResponse> {
-  const res = await fetch(`${API_URL}/api/v1/auth/login`, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    mode: "cors",
-    body: JSON.stringify({ email, password }),
-  });
-
-  if (!res.ok) {
-    const error = await res
-      .json()
-      .catch(() => ({ detail: "Erreur inconnue" }));
-
-    throw new Error(error.detail || `Login failed: ${res.status}`);
-  }
-
-  return res.json();
-}
-
-export function saveToken(token: string, email: string): void {
-  localStorage.setItem("riadpulse_token", token);
-  localStorage.setItem("riadpulse_email", email);
-}
-
-export function getToken(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return localStorage.getItem("riadpulse_token");
-}
-
-export function getEmail(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return localStorage.getItem("riadpulse_email");
-}
-
-export function logout(): void {
-  localStorage.removeItem("riadpulse_token");
-  localStorage.removeItem("riadpulse_email");
-}
-
-export async function runPricingAudit(data: {
-  riad_name: string;
-  city: string;
-  my_price_per_night: number;
-  stars: number;
-  num_rooms: number;
-  occupancy_rate: number;
-}): Promise<PricingAuditResponse> {
-  const res = await fetch(`${API_URL}/api/v1/audit/pricing`, {
-    method: "POST",
-    headers: authHeaders(),
-    mode: "cors",
-    body: JSON.stringify(data),
-  });
-
-  if (!res.ok) {
-    const error = await res
-      .json()
-      .catch(() => ({ detail: "Erreur inconnue" }));
-
-    throw new Error(error.detail || `Pricing audit failed: ${res.status}`);
-  }
-
-  return res.json();
-}
-
-export async function runReputationAudit(data: {
+export async function auditReputation(data: {
   riad_name: string;
   city: string;
   booking_score: number;
@@ -269,25 +175,91 @@ export async function runReputationAudit(data: {
   tripadvisor_reviews: number;
   google_score: number;
   google_reviews: number;
-  response_rate: number;
-  negative_reviews_last_6m: number;
-}): Promise<ReputationAuditResponse> {
-  const res = await fetch(`${API_URL}/api/v1/audit/reputation`, {
+  response_rate_percent: number;
+}): Promise<ReputationResult> {
+  return authFetch(`${API_URL}/api/v1/audit/reputation`, {
     method: "POST",
-    headers: authHeaders(),
-    mode: "cors",
     body: JSON.stringify(data),
   });
-
-  if (!res.ok) {
-    const error = await res
-      .json()
-      .catch(() => ({ detail: "Erreur inconnue" }));
-
-    throw new Error(
-      error.detail || `Reputation audit failed: ${res.status}`
-    );
-  }
-
-  return res.json();
 }
+
+// ==================== COMMISSIONS ====================
+
+export interface PlatformCost {
+  name: string;
+  revenue_mad: number;
+  commission_rate: number;
+  commission_mad: number;
+  commission_eur: number;
+  color: string;
+}
+
+export interface CommissionRecommendation {
+  title: string;
+  detail: string;
+  saving_mad: number;
+  difficulty: string;
+}
+
+export interface CommissionResult {
+  riad_name: string;
+  city: string;
+  annual_revenue_mad: number;
+  annual_revenue_eur: number;
+  total_commission_mad: number;
+  total_commission_eur: number;
+  commission_percent: number;
+  platforms: PlatformCost[];
+  direct_revenue_mad: number;
+  potential_direct_percent: number;
+  potential_saving_mad: number;
+  potential_saving_eur: number;
+  cost_per_booking_mad: number;
+  recommendations: CommissionRecommendation[];
+}
+
+export async function auditCommissions(data: {
+  riad_name: string;
+  city: string;
+  annual_revenue_mad: number;
+  booking_percent: number;
+  airbnb_percent: number;
+  expedia_percent: number;
+  direct_percent: number;
+  avg_night_price_mad: number;
+  num_rooms: number;
+}): Promise<CommissionResult> {
+  return authFetch(`${API_URL}/api/v1/audit/commissions`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+// ==================== HISTORY ====================
+
+export interface AuditRecord {
+  id: number;
+  url: string;
+  total_score: number;
+  max_total: number;
+  grade: string;
+  created_at: string;
+}
+
+export async function getAudits(): Promise<AuditRecord[]> {
+  return authFetch(`${API_URL}/api/v1/audits/`);
+}
+
+// ==================== ALIAS (compatibilité pages) ====================
+
+export { auditSiteWeb as runSiteWebAudit };
+export type { SiteWebResult as SiteWebAuditResponse };
+
+export { auditPricing as runPricingAudit };
+export type { PricingResult as PricingAuditResponse };
+
+export { auditReputation as runReputationAudit };
+export type { ReputationResult as ReputationAuditResponse };
+
+export { auditCommissions as runCommissionsAudit };
+export type { CommissionResult as CommissionsAuditResponse };
