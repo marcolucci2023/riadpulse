@@ -128,3 +128,53 @@ export function logout(): void {
   localStorage.removeItem("riadpulse_token");
   localStorage.removeItem("riadpulse_email");
 }
+
+export interface PricingBenchmark {
+  city: string;
+  stars: number;
+  low_price: number;
+  median_price: number;
+  high_price: number;
+  source: string;
+}
+
+export interface PricingRecommendation {
+  title: string;
+  detail: string;
+  impact_mad: number;
+}
+
+export interface PricingAuditResponse {
+  riad_name: string;
+  city: string;
+  my_price: number;
+  benchmark: PricingBenchmark;
+  positioning: string;
+  positioning_detail: string;
+  gap_percent: number;
+  gap_mad_per_night: number;
+  estimated_annual_loss_mad: number;
+  estimated_annual_loss_eur: number;
+  recommendations: PricingRecommendation[];
+}
+
+export async function runPricingAudit(data: {
+  riad_name: string;
+  city: string;
+  my_price_per_night: number;
+  stars: number;
+  num_rooms: number;
+  occupancy_rate: number;
+}): Promise<PricingAuditResponse> {
+  const res = await fetch(`${API_URL}/api/v1/audit/pricing`, {
+    method: "POST",
+    headers: authHeaders(),
+    mode: "cors",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Erreur inconnue" }));
+    throw new Error(error.detail || `Pricing audit failed: ${res.status}`);
+  }
+  return res.json();
+}

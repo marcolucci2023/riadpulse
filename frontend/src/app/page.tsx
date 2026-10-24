@@ -1,5 +1,5 @@
 import Link from "next/link";
-import BackendStatus from "@/components/BackendStatus";
+import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 const features = [
@@ -38,34 +38,7 @@ const features = [
 export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#1B2A4A] to-[#0F1A2E] text-white">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 md:px-12 py-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#C2452D] rounded-lg flex items-center justify-center font-bold text-xl">
-            R
-          </div>
-          <span className="text-2xl font-bold">
-            Riad<span className="text-[#D4A843]">Pulse</span>
-          </span>
-        </div>
-        <nav className="flex gap-3">
-          <Link
-            href="/login"
-            className="px-5 py-2 rounded-lg border border-white/20 hover:bg-white/10 transition text-sm"
-          >
-            Connexion
-          </Link>
-          <Link
-            href="/login"
-            className="px-5 py-2 rounded-lg bg-[#C2452D] hover:bg-[#A83A25] transition font-semibold text-sm"
-          >
-            Commencer
-          </Link>
-        </nav>
-      </header>
-
-      {/* Backend Status */}
-      <BackendStatus />
+      <Header />
 
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-6 pt-16 pb-24 text-center">
@@ -82,7 +55,7 @@ export default function Home() {
           d&apos;action concret.
         </p>
         <Link
-          href="/login"
+          href="/audit"
           className="inline-block px-8 py-4 rounded-xl bg-[#C2452D] hover:bg-[#A83A25] transition font-bold text-lg"
         >
           Lancer un audit gratuit
@@ -141,14 +114,13 @@ export default function Home() {
           L&apos;audit de base est gratuit. Résultats en moins de 5 minutes.
         </p>
         <Link
-          href="/login"
+          href="/register"
           className="inline-block px-8 py-4 rounded-xl bg-[#D4A843] hover:bg-[#E8C76A] text-[#1B2A4A] transition font-bold text-lg"
         >
           Créer mon compte gratuitement
         </Link>
       </section>
 
-      {/* Footer */}
       <Footer />
     </main>
   );

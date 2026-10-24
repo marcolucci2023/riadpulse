@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import Header from "@/components/Header";
 import { runSiteAudit, getToken, AuditSiteWebResponse } from "@/lib/api";
 
 function GradeBadge({ grade }: { grade: string }) {
@@ -13,7 +14,9 @@ function GradeBadge({ grade }: { grade: string }) {
     F: "bg-red-500 text-white",
   };
   return (
-    <span className={`inline-flex items-center justify-center w-16 h-16 rounded-full text-3xl font-bold ${colors[grade] || colors["F"]}`}>
+    <span
+      className={`inline-flex items-center justify-center w-16 h-16 rounded-full text-3xl font-bold ${colors[grade] || colors["F"]}`}
+    >
       {grade}
     </span>
   );
@@ -22,10 +25,19 @@ function GradeBadge({ grade }: { grade: string }) {
 function ScoreBar({ score, max }: { score: number; max: number }) {
   const pct = Math.round((score / max) * 100);
   const color =
-    pct >= 80 ? "bg-emerald-500" : pct >= 60 ? "bg-yellow-500" : pct >= 40 ? "bg-orange-500" : "bg-red-500";
+    pct >= 80
+      ? "bg-emerald-500"
+      : pct >= 60
+        ? "bg-yellow-500"
+        : pct >= 40
+          ? "bg-orange-500"
+          : "bg-red-500";
   return (
     <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
-      <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${pct}%` }} />
+      <div
+        className={`h-full rounded-full transition-all duration-700 ${color}`}
+        style={{ width: `${pct}%` }}
+      />
     </div>
   );
 }
@@ -35,8 +47,11 @@ export default function AuditPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AuditSiteWebResponse | null>(null);
   const [error, setError] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const isLoggedIn = typeof window !== "undefined" && !!getToken();
+  useEffect(() => {
+    setIsLoggedIn(!!getToken());
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,28 +73,7 @@ export default function AuditPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#1B2A4A] to-[#0F1A2E] text-white">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 md:px-12 py-6">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#C2452D] rounded-lg flex items-center justify-center font-bold text-xl">
-            R
-          </div>
-          <span className="text-2xl font-bold">
-            Riad<span className="text-[#D4A843]">Pulse</span>
-          </span>
-        </Link>
-        <div className="flex gap-3">
-          {isLoggedIn ? (
-            <Link href="/dashboard" className="px-5 py-2 rounded-lg bg-[#C2452D] hover:bg-[#A83A25] transition font-semibold text-sm">
-              Dashboard
-            </Link>
-          ) : (
-            <Link href="/login" className="px-5 py-2 rounded-lg bg-[#C2452D] hover:bg-[#A83A25] transition font-semibold text-sm">
-              Connexion
-            </Link>
-          )}
-        </div>
-      </header>
+      <Header />
 
       {/* Titre */}
       <section className="max-w-3xl mx-auto px-6 pt-12 pb-8 text-center">
@@ -87,7 +81,8 @@ export default function AuditPage() {
           Audit site web <span className="text-[#D4A843]">gratuit</span>
         </h1>
         <p className="text-white/60">
-          Entrez l&apos;URL du site de votre riad et recevez un score sur 100 en quelques secondes.
+          Entrez l&apos;URL du site de votre riad et recevez un score sur 100 en
+          quelques secondes.
         </p>
       </section>
 
@@ -124,10 +119,13 @@ export default function AuditPage() {
       {/* Résultat */}
       {result && (
         <section className="max-w-3xl mx-auto px-6 pb-20">
-          {/* Badge sauvegardé */}
+          {/* Messages conditionnels */}
           {result.saved && (
             <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-xl px-5 py-3 text-emerald-300 text-sm mb-6 text-center">
-              ✅ Audit sauvegardé dans votre historique
+              ✅ Audit sauvegardé dans votre historique —{" "}
+              <Link href="/dashboard" className="underline font-medium">
+                Voir le dashboard
+              </Link>
             </div>
           )}
 
@@ -139,7 +137,14 @@ export default function AuditPage() {
 
           {!isLoggedIn && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-white/60 text-sm mb-6 text-center">
-              💡 <Link href="/login" className="text-[#D4A843] hover:underline">Connectez-vous</Link> pour sauvegarder vos audits
+              💡{" "}
+              <Link
+                href="/login"
+                className="text-[#D4A843] hover:underline font-medium"
+              >
+                Connectez-vous
+              </Link>{" "}
+              pour sauvegarder vos audits et suivre votre historique
             </div>
           )}
 
@@ -150,7 +155,9 @@ export default function AuditPage() {
               <div className="text-left">
                 <div className="text-5xl font-bold">
                   {result.total_score}
-                  <span className="text-2xl text-white/40">/{result.max_total}</span>
+                  <span className="text-2xl text-white/40">
+                    /{result.max_total}
+                  </span>
                 </div>
                 <div className="text-white/50 text-sm mt-1">{result.url}</div>
               </div>
@@ -160,10 +167,15 @@ export default function AuditPage() {
           {/* Critères */}
           <div className="space-y-4">
             {result.criteria.map((c) => (
-              <div key={c.name} className="bg-white/5 border border-white/10 rounded-xl p-5">
+              <div
+                key={c.name}
+                className="bg-white/5 border border-white/10 rounded-xl p-5"
+              >
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-semibold">{c.name}</h3>
-                  <span className="text-sm font-bold text-[#D4A843]">{c.score}/{c.max_score}</span>
+                  <span className="text-sm font-bold text-[#D4A843]">
+                    {c.score}/{c.max_score}
+                  </span>
                 </div>
                 <ScoreBar score={c.score} max={c.max_score} />
                 <p className="text-white/50 text-sm mt-2">{c.detail}</p>
@@ -171,17 +183,32 @@ export default function AuditPage() {
             ))}
           </div>
 
-          {/* CTA */}
+          {/* CTA conditionnel */}
           <div className="mt-8 text-center">
-            <p className="text-white/60 mb-4">
-              Vous voulez un audit complet (prix, réputation, commissions, Maps) ?
-            </p>
-            <Link
-              href="/login"
-              className="inline-block px-8 py-3 rounded-xl bg-[#D4A843] hover:bg-[#E8C76A] text-[#1B2A4A] transition font-bold"
-            >
-              Créer mon compte gratuitement
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <p className="text-white/60 mb-4">
+                  Vous voulez un audit complet (prix, réputation, commissions,
+                  Maps) ?
+                </p>
+                <p className="text-white/40 text-sm">
+                  🚧 Modules avancés en cours de développement...
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-white/60 mb-4">
+                  Vous voulez un audit complet (prix, réputation, commissions,
+                  Maps) ?
+                </p>
+                <Link
+                  href="/register"
+                  className="inline-block px-8 py-3 rounded-xl bg-[#D4A843] hover:bg-[#E8C76A] text-[#1B2A4A] transition font-bold"
+                >
+                  Créer mon compte gratuitement
+                </Link>
+              </>
+            )}
           </div>
         </section>
       )}
