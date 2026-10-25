@@ -18,7 +18,6 @@ async function handle(r: Response) {
   return r.json();
 }
 
-/* ── Auth ── */
 export async function registerUser(email: string, password: string) {
   return handle(await fetch(`${API_URL}/api/v1/auth/register`, {
     method: "POST",
@@ -43,7 +42,6 @@ export function getToken() {
   return typeof window !== "undefined" ? localStorage.getItem("token") : null;
 }
 
-/* ── Audits ── */
 export async function runSiteAudit(url: string) {
   return handle(await fetch(`${API_URL}/api/v1/audit/site-web`, {
     method: "POST",
@@ -142,13 +140,11 @@ export async function runGlobalScore(data: Record<string, unknown>) {
   return runGlobalAudit(data as Parameters<typeof runGlobalAudit>[0]);
 }
 
-/* ── History ── */
 export async function getMyAudits() {
   return handle(await fetch(`${API_URL}/api/v1/audits/`, {
     headers: getHeaders(),
   }));
 }
 
-/* ── Compat aliases ── */
 export const checkHealth = async () =>
   handle(await fetch(`${API_URL}/health`));
