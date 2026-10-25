@@ -3,7 +3,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
-import { runSiteAudit, getToken, AuditSiteWebResponse } from "@/lib/api";
+import { runSiteAudit, getToken, SiteWebResult } from "@/lib/api";
+
+const CRITERIA_LABELS: Record<string, string> = {
+  https: "🔒 HTTPS / Sécurité",
+  speed: "⚡ Vitesse de chargement",
+  responsive: "📱 Responsive mobile",
+  tech: "🛠️ Technologies détectées",
+};
 
 function GradeBadge({ grade }: { grade: string }) {
   const colors: Record<string, string> = {
@@ -45,7 +52,7 @@ function ScoreBar({ score, max }: { score: number; max: number }) {
 export default function AuditPage() {
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AuditSiteWebResponse | null>(null);
+  const [result, setResult] = useState<SiteWebResult | null>(null);
   const [error, setError] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -75,18 +82,15 @@ export default function AuditPage() {
     <main className="min-h-screen bg-gradient-to-br from-[#1B2A4A] to-[#0F1A2E] text-white">
       <Header />
 
-      {/* Titre */}
       <section className="max-w-3xl mx-auto px-6 pt-12 pb-8 text-center">
         <h1 className="text-3xl md:text-4xl font-bold mb-3">
           Audit site web <span className="text-[#D4A843]">gratuit</span>
         </h1>
         <p className="text-white/60">
-          Entrez l&apos;URL du site de votre riad et recevez un score sur 100 en
-          quelques secondes.
+          Entrez l&apos;URL du site de votre riad et recevez un score sur 100 en quelques secondes.
         </p>
       </section>
 
-      {/* Formulaire */}
       <section className="max-w-2xl mx-auto px-6 pb-8">
         <form onSubmit={handleSubmit} className="flex gap-3">
           <input
@@ -107,7 +111,6 @@ export default function AuditPage() {
         </form>
       </section>
 
-      {/* Erreur */}
       {error && (
         <section className="max-w-2xl mx-auto px-6 pb-8">
           <div className="bg-red-900/30 border border-red-500/30 rounded-xl px-5 py-4 text-red-300">
@@ -116,99 +119,65 @@ export default function AuditPage() {
         </section>
       )}
 
-      {/* Résultat */}
       {result && (
         <section className="max-w-3xl mx-auto px-6 pb-20">
-          {/* Messages conditionnels */}
-          {result.saved && (
+          {isLoggedIn && (
             <div className="bg-emerald-900/30 border border-emerald-500/30 rounded-xl px-5 py-3 text-emerald-300 text-sm mb-6 text-center">
-              ✅ Audit sauvegardé dans votre historique —{" "}
+              ✅ Audit terminé —{" "}
               <Link href="/dashboard" className="underline font-medium">
                 Voir le dashboard
               </Link>
             </div>
           )}
 
-          {!result.saved && isLoggedIn && (
-            <div className="bg-amber-900/30 border border-amber-500/30 rounded-xl px-5 py-3 text-amber-300 text-sm mb-6 text-center">
-              ⚠️ Audit non sauvegardé (erreur de connexion)
-            </div>
-          )}
-
           {!isLoggedIn && (
             <div className="bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-white/60 text-sm mb-6 text-center">
               💡{" "}
-              <Link
-                href="/login"
-                className="text-[#D4A843] hover:underline font-medium"
-              >
+              <Link href="/login" className="text-[#D4A843] hover:underline font-medium">
                 Connectez-vous
               </Link>{" "}
               pour sauvegarder vos audits et suivre votre historique
             </div>
           )}
 
-          {/* Score global */}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 mb-6 text-center">
             <div className="flex items-center justify-center gap-6 mb-4">
               <GradeBadge grade={result.grade} />
               <div className="text-left">
                 <div className="text-5xl font-bold">
                   {result.total_score}
-                  <span className="text-2xl text-white/40">
-                    /{result.max_total}
-                  </span>
+                  <span className="text-2xl text-white/40">/{result.max_total}</span>
                 </div>
                 <div className="text-white/50 text-sm mt-1">{result.url}</div>
               </div>
             </div>
           </div>
 
-          {/* Critères */}
           <div className="space-y-4">
-            {result.criteria.map((c) => (
-              <div
-                key={c.name}
-                className="bg-white/5 border border-white/10 rounded-xl p-5"
-              >
+            {Object.entries(result.criteria).map(([key, c]) => (
+              <div key={key} className="bg-white/5 border border-white/10 rounded-xl p-5">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold">{c.name}</h3>
+                  <h3 className="font-semibold">{CRITERIA_LABELS[key] || key}</h3>
                   <span className="text-sm font-bold text-[#D4A843]">
-                    {c.score}/{c.max_score}
+                    {c.score}/{c.max}
                   </span>
                 </div>
-                <ScoreBar score={c.score} max={c.max_score} />
+                <ScoreBar score={c.score} max={c.max} />
                 <p className="text-white/50 text-sm mt-2">{c.detail}</p>
               </div>
             ))}
           </div>
 
-          {/* CTA conditionnel */}
           <div className="mt-8 text-center">
-            {isLoggedIn ? (
-              <>
-                <p className="text-white/60 mb-4">
-                  Vous voulez un audit complet (prix, réputation, commissions,
-                  Maps) ?
-                </p>
-                <p className="text-white/40 text-sm">
-                  🚧 Modules avancés en cours de développement...
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-white/60 mb-4">
-                  Vous voulez un audit complet (prix, réputation, commissions,
-                  Maps) ?
-                </p>
-                <Link
-                  href="/register"
-                  className="inline-block px-8 py-3 rounded-xl bg-[#D4A843] hover:bg-[#E8C76A] text-[#1B2A4A] transition font-bold"
-                >
-                  Créer mon compte gratuitement
-                </Link>
-              </>
-            )}
+            <p className="text-white/60 mb-4">
+              Vous voulez un audit complet (prix, réputation, commissions) ?
+            </p>
+            <Link
+              href="/score"
+              className="inline-block px-8 py-3 rounded-xl bg-[#D4A843] hover:bg-[#E8C76A] text-[#1B2A4A] transition font-bold"
+            >
+              🏆 Lancer le Score Global RiadPulse
+            </Link>
           </div>
         </section>
       )}
