@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { runGlobalAudit, GlobalAuditResponse } from "@/lib/api";
+import { generatePDF } from "@/lib/pdfGenerator";
 
 const CITIES = ["Marrakech", "Fès", "Essaouira", "Chefchaouen", "Tanger", "Rabat"];
 
@@ -281,6 +282,14 @@ export default function ScorePage() {
                 </div>
               )}
               <p className="text-gray-400 text-sm mt-4">📍 {result.city_position}</p>
+              <div className="mt-6">
+                <button
+                  onClick={() => generatePDF(result)}
+                  className="bg-[#D4A843] hover:bg-[#b89135] text-[#0F1A2E] font-bold py-3 px-6 rounded-xl transition inline-flex items-center gap-2 text-base shadow-lg cursor-pointer"
+                >
+                  📥 Télécharger le rapport PDF
+                </button>
+              </div>	
             </div>
 
             {/* SOUS-SCORES */}
