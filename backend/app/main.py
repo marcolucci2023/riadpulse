@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import init_db
 from app.api.v1.routes import audit, audits, auth, pricing, reputation, commissions
-
+from app.api.v1.routes.score import router as score_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,6 +38,7 @@ app.include_router(auth.router)
 app.include_router(pricing.router)
 app.include_router(reputation.router)
 app.include_router(commissions.router)
+app.include_router(score_router, prefix="/api/v1", tags=["Score Global"])
 
 
 @app.get("/")

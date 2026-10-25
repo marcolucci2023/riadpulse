@@ -250,10 +250,71 @@ export async function getAudits(): Promise<AuditRecord[]> {
   return authFetch(`${API_URL}/api/v1/audits/`);
 }
 
+// ==================== SCORE GLOBAL ====================
+
+export interface SubScore {
+  score: number;
+  max_score: number;
+  grade: string;
+  weight: number;
+  weighted_score: number;
+}
+
+export interface Priority {
+  rank: number;
+  module: string;
+  title: string;
+  detail: string;
+  impact_mad: number;
+  difficulty: string;
+}
+
+export interface GlobalAuditResponse {
+  riad_name: string;
+  city: string;
+  global_score: number;
+  grade: string;
+  total_annual_loss_mad: number;
+  total_annual_loss_eur: number;
+  sub_scores: Record<string, SubScore>;
+  top_priorities: Priority[];
+  city_position: string;
+  modules: Record<string, any>;
+}
+
+export async function runGlobalAudit(data: {
+  riad_name: string;
+  city: string;
+  stars: number;
+  url: string;
+  current_price_mad: number;
+  num_rooms: number;
+  occupancy_rate: number;
+  annual_revenue_mad: number;
+  booking_percent: number;
+  airbnb_percent: number;
+  expedia_percent: number;
+  direct_percent: number;
+  booking_score: number;
+  booking_reviews: number;
+  tripadvisor_score: number;
+  tripadvisor_reviews: number;
+  google_score: number;
+  google_reviews: number;
+  response_rate_percent: number;
+}): Promise<GlobalAuditResponse> {
+  return authFetch(`${API_URL}/api/v1/audit/global`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
 // ==================== ALIAS (compatibilité pages) ====================
 
 export { auditSiteWeb as runSiteWebAudit };
+export { auditSiteWeb as runSiteAudit };
 export type { SiteWebResult as SiteWebAuditResponse };
+export type { SiteWebResult as AuditSiteWebResponse };
 
 export { auditPricing as runPricingAudit };
 export type { PricingResult as PricingAuditResponse };
@@ -263,3 +324,5 @@ export type { ReputationResult as ReputationAuditResponse };
 
 export { auditCommissions as runCommissionsAudit };
 export type { CommissionResult as CommissionsAuditResponse };
+
+export { getAudits as getMyAudits };
