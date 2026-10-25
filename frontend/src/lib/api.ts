@@ -326,3 +326,13 @@ export { auditCommissions as runCommissionsAudit };
 export type { CommissionResult as CommissionsAuditResponse };
 
 export { getAudits as getMyAudits };
+
+export { register as registerUser };
+export { login as loginUser };
+
+export function saveToken(token: string, email: string) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user_email", email);
+  }
+}
