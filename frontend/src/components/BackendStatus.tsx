@@ -9,7 +9,7 @@ export default function BackendStatus() {
 
   useEffect(() => {
     checkHealth()
-      .then((data) => {
+      .then((data: { status: string }) => {
         if (data.status === "ok") {
           setStatus("ok");
           setMessage("API RiadPulse connectée");

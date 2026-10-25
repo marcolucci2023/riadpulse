@@ -4,11 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Header";
-import {
-  getToken,
-  getMyAudits,
-  AuditSiteWebResponse,
-} from "@/lib/api";
+import { getToken, getMyAudits, AuditRecord } from "@/lib/api";
 
 function GradeBadge({ grade }: { grade: string }) {
   const colors: Record<string, string> = {
@@ -29,7 +25,7 @@ function GradeBadge({ grade }: { grade: string }) {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [audits, setAudits] = useState<AuditSiteWebResponse[]>([]);
+  const [audits, setAudits] = useState<AuditRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -60,7 +56,6 @@ export default function DashboardPage() {
     <main className="min-h-screen bg-gradient-to-br from-[#1B2A4A] to-[#0F1A2E] text-white">
       <Header />
 
-      {/* Stats rapides */}
       <section className="max-w-5xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white/5 border border-white/10 rounded-xl p-5">
@@ -84,7 +79,6 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* Actions */}
       <section className="max-w-5xl mx-auto px-6 pb-6">
         <Link
           href="/audit"
@@ -94,7 +88,6 @@ export default function DashboardPage() {
         </Link>
       </section>
 
-      {/* Historique */}
       <section className="max-w-5xl mx-auto px-6 pb-16">
         <h2 className="text-xl font-bold mb-4">Historique des audits</h2>
 

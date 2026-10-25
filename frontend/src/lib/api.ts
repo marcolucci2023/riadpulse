@@ -309,6 +309,14 @@ export async function runGlobalAudit(data: {
   });
 }
 
+// ==================== HEALTH ====================
+
+export async function checkHealth(): Promise<{ status: string }> {
+  const res = await fetch(`${API_URL}/health`);
+  if (!res.ok) throw new Error("Backend non joignable");
+  return res.json();
+}
+
 // ==================== ALIAS (compatibilité pages) ====================
 
 export { auditSiteWeb as runSiteWebAudit };
