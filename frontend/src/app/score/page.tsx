@@ -70,10 +70,10 @@ function ScoreBar({ label, score, grade, weight, icon }: { label: string; score:
 }
 
 const MODULE_META: Record<string, { label: string; icon: string }> = {
-  site_web: { label: "Site Web", icon: Icons.globe },
+  site_web: { label: "Visibilité", icon: Icons.globe },
   reputation: { label: "Réputation", icon: Icons.star },
-  pricing: { label: "Pricing", icon: Icons.tag },
-  commissions: { label: "Commissions", icon: Icons.chart },
+  pricing: { label: "Prix", icon: Icons.tag },
+  commissions: { label: "Réservations directes", icon: Icons.chart },
 };
 
 export default function ScorePage() {
