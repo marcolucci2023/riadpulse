@@ -15,6 +15,8 @@ WEIGHTS = {
     "commissions": 0.20,
 }
 
+MAD_TO_EUR = 11.0
+
 
 def _grade(score: float, max_score: float = 100) -> str:
     pct = (score / max_score) * 100 if max_score > 0 else 0
@@ -31,13 +33,8 @@ def _grade(score: float, max_score: float = 100) -> str:
 
 
 async def calculate_global_score(req) -> dict:
-    """
-    Calculate the global RiadPulse score.
-    Runs all available modules and normalizes weights.
-    """
     modules = {}
     active_weights = {}
-    recommendations = []
     priorities = []
 
     # --- Site Web ---
@@ -51,18 +48,19 @@ async def calculate_global_score(req) -> dict:
             }
             active_weights["site_web"] = WEIGHTS["site_web"]
             for r in sw.get("recommendations", []):
-                recommendations.append({"module": "Site Web", "action": r})
+                action = r if isinstance(r, str) else r.get("action", str(r))
+                gain = 20000 if isinstance(r, str) else r.get("gain_mad", 20000)
+                diff = "moyenne" if isinstance(r, str) else r.get("difficulty", "moyenne")
                 priorities.append({
                     "module": "Site Web",
-                    "action": r,
-                    "gain_mad": 20000,
-                    "difficulty": "moyenne",
+                    "title": action,
+                    "impact_mad": gain,
+                    "difficulty": diff,
                 })
         except Exception as e:
             modules["site_web"] = {"score": 0, "max": 100, "error": str(e)}
 
     # --- Pricing ---
-    # Le schema utilise current_price_mad (pas my_price)
     price = getattr(req, "current_price_mad", None) or getattr(req, "my_price", None)
     if price and req.stars and req.num_rooms:
         pr = analyze_pricing(
@@ -81,24 +79,21 @@ async def calculate_global_score(req) -> dict:
         active_weights["pricing"] = WEIGHTS["pricing"]
         for r in pr.get("recommendations", []):
             if isinstance(r, dict):
-                recommendations.append({"module": "Pricing", "action": r.get("action", str(r))})
                 priorities.append({
                     "module": "Pricing",
-                    "action": r.get("action", str(r)),
-                    "gain_mad": r.get("gain_mad", 0),
+                    "title": r.get("action", str(r)),
+                    "impact_mad": r.get("gain_mad", 0),
                     "difficulty": r.get("difficulty", "moyenne"),
                 })
             else:
-                recommendations.append({"module": "Pricing", "action": r})
                 priorities.append({
                     "module": "Pricing",
-                    "action": r,
-                    "gain_mad": pr.get("revenue", {}).get("gap", 0),
+                    "title": str(r),
+                    "impact_mad": pr.get("revenue", {}).get("gap", 0),
                     "difficulty": "moyenne",
                 })
 
     # --- Reputation ---
-    # Le schema utilise response_rate_percent (pas response_rate)
     resp_rate = getattr(req, "response_rate_percent", None) or getattr(req, "response_rate", None) or 0
     if req.booking_score or req.tripadvisor_score or req.google_score:
         rep = analyze_reputation(
@@ -121,19 +116,17 @@ async def calculate_global_score(req) -> dict:
         active_weights["reputation"] = WEIGHTS["reputation"]
         for r in rep.get("recommendations", []):
             if isinstance(r, dict):
-                recommendations.append({"module": "Réputation", "action": r.get("action", str(r))})
                 priorities.append({
-                    "module": "Réputation",
-                    "action": r.get("action", str(r)),
-                    "gain_mad": r.get("gain_mad", 0),
+                    "module": "Reputation",
+                    "title": r.get("action", str(r)),
+                    "impact_mad": r.get("gain_mad", 0),
                     "difficulty": r.get("difficulty", "moyenne"),
                 })
             else:
-                recommendations.append({"module": "Réputation", "action": r})
                 priorities.append({
-                    "module": "Réputation",
-                    "action": r,
-                    "gain_mad": 20000,
+                    "module": "Reputation",
+                    "title": str(r),
+                    "impact_mad": 20000,
                     "difficulty": "moyenne",
                 })
 
@@ -158,20 +151,18 @@ async def calculate_global_score(req) -> dict:
         active_weights["commissions"] = WEIGHTS["commissions"]
         for r in com.get("recommendations", []):
             if isinstance(r, dict):
-                recommendations.append({"module": "Commissions", "action": r.get("action", str(r))})
                 priorities.append({
                     "module": "Commissions",
-                    "action": r.get("action", str(r)),
-                    "gain_mad": r.get("gain_mad", 0),
+                    "title": r.get("action", str(r)),
+                    "impact_mad": r.get("gain_mad", 0),
                     "difficulty": r.get("difficulty", "moyenne"),
                 })
             else:
-                recommendations.append({"module": "Commissions", "action": r})
                 savings = com.get("details", {}).get("optimization", {}).get("savings_potential", 0)
                 priorities.append({
                     "module": "Commissions",
-                    "action": r,
-                    "gain_mad": round(savings / max(len(com.get("recommendations", [])), 1)),
+                    "title": str(r),
+                    "impact_mad": round(savings / max(len(com.get("recommendations", [])), 1)),
                     "difficulty": "moyenne",
                 })
 
@@ -179,13 +170,16 @@ async def calculate_global_score(req) -> dict:
     total_weight = sum(active_weights.values())
     if total_weight == 0:
         return {
+            "riad_name": req.riad_name,
+            "city": req.city,
             "global_score": 0,
-            "max_total": 100,
             "grade": "F",
-            "modules": modules,
-            "recommendations": [],
-            "priorities": [],
-            "error": "Aucune donnée fournie pour le calcul.",
+            "total_annual_loss_mad": 0,
+            "total_annual_loss_eur": 0,
+            "sub_scores": {},
+            "top_priorities": [],
+            "city_position": "Donnees insuffisantes",
+            "modules": {},
         }
 
     weighted_score = 0
@@ -195,17 +189,45 @@ async def calculate_global_score(req) -> dict:
         mod_pct = mod["score"] / mod["max"] if mod["max"] > 0 else 0
         weighted_score += mod_pct * normalized_weight * 100
 
-    # Sort priorities by gain (highest first)
-    priorities.sort(key=lambda x: x.get("gain_mad", 0), reverse=True)
+    # Build sub_scores: {score, grade, weight} — exactly what ScoreBar expects
+    sub_scores = {}
+    for mod_name, mod in modules.items():
+        sub_scores[mod_name] = {
+            "score": mod["score"],
+            "grade": _grade(mod["score"], mod["max"]),
+            "weight": WEIGHTS.get(mod_name, 0),
+        }
 
-    total_loss = sum(p.get("gain_mad", 0) for p in priorities[:5])
+    # Sort priorities by impact (highest first) and add rank
+    priorities.sort(key=lambda x: x.get("impact_mad", 0), reverse=True)
+    top_priorities = []
+    for i, p in enumerate(priorities[:5], 1):
+        p["rank"] = i
+        top_priorities.append(p)
+
+    total_loss = sum(p.get("impact_mad", 0) for p in top_priorities)
+    total_loss_eur = round(total_loss / MAD_TO_EUR)
+
+    if weighted_score >= 80:
+        city_pos = f"Top 15% des riads a {req.city}"
+    elif weighted_score >= 65:
+        city_pos = f"Top 30% des riads a {req.city}"
+    elif weighted_score >= 50:
+        city_pos = f"Top 50% des riads a {req.city}"
+    elif weighted_score >= 35:
+        city_pos = f"Top 70% des riads a {req.city}"
+    else:
+        city_pos = f"Top 85% des riads a {req.city}"
 
     return {
+        "riad_name": req.riad_name,
+        "city": req.city,
         "global_score": round(weighted_score, 1),
-        "max_total": 100,
         "grade": _grade(weighted_score),
+        "total_annual_loss_mad": total_loss,
+        "total_annual_loss_eur": total_loss_eur,
+        "sub_scores": sub_scores,
+        "top_priorities": top_priorities,
+        "city_position": city_pos,
         "modules": modules,
-        "recommendations": [r["action"] if isinstance(r, dict) else r for r in recommendations],
-        "priorities": priorities[:5],
-        "total_estimated_loss_mad": total_loss,
     }

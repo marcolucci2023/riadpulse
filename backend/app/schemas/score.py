@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, ConfigDict
+from typing import Optional, Dict, Any
 
 
 class GlobalAuditRequest(BaseModel):
@@ -27,13 +27,6 @@ class GlobalAuditRequest(BaseModel):
 
 
 class GlobalAuditResponse(BaseModel):
-    riad_name: str
-    city: str
-    global_score: float
-    grade: str
-    sub_scores: Dict[str, Any]
-    top_priorities: List[Dict[str, Any]]
-    total_estimated_loss_mad: float
-    pricing: Dict[str, Any]
-    reputation: Dict[str, Any]
-    commissions: Dict[str, Any]
+    model_config = ConfigDict(extra="allow")
+    global_score: float = 0
+    grade: str = "E"
