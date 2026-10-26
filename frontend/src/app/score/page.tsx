@@ -8,45 +8,72 @@ import { generatePDF } from "@/lib/pdfGenerator";
 
 const CITIES = ["Marrakech", "Fès", "Essaouira", "Chefchaouen", "Tanger", "Rabat"];
 
+/* ── SVG Icons (Heroicons outline, strokeWidth 1.5) ── */
+const Icon = ({ d, size = 20 }: { d: string; size?: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" width={size} height={size}>
+    <path strokeLinecap="round" strokeLinejoin="round" d={d} />
+  </svg>
+);
+
+const Icons = {
+  trophy: "M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.003 6.003 0 01-2.77.672 6.003 6.003 0 01-2.77-.672",
+  building: "M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21",
+  currency: "M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+  chart: "M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z",
+  star: "M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.749-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z",
+  globe: "M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418",
+  download: "M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3",
+  mappin: "M15 10.5a3 3 0 11-6 0 3 3 0 016 0z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z",
+  warning: "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z",
+  arrow: "M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182",
+  check: "M4.5 12.75l6 6 9-13.5",
+  bolt: "M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z",
+  tag: "M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z M6 6h.008v.008H6V6z",
+  arrowRight: "M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3",
+};
+
 function GradeBadge({ grade }: { grade: string }) {
-  const colors: Record<string, string> = {
-    A: "bg-green-600",
-    B: "bg-lime-600",
-    C: "bg-yellow-500 text-black",
-    D: "bg-orange-500",
-    F: "bg-red-600",
+  const styles: Record<string, string> = {
+    A: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    B: "bg-lime-500/15 text-lime-400 border-lime-500/30",
+    C: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    D: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+    F: "bg-red-500/15 text-red-400 border-red-500/30",
   };
   return (
-    <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full text-white font-bold text-lg ${colors[grade] || "bg-gray-500"}`}>
+    <span className={`inline-flex items-center justify-center w-10 h-10 rounded-lg border text-sm font-bold ${styles[grade] || "bg-white/5 text-white/40 border-white/10"}`}>
       {grade}
     </span>
   );
 }
 
-function ScoreBar({ label, score, grade, weight }: { label: string; score: number; grade: string; weight: number }) {
-  const barColor = score >= 85 ? "bg-green-500" : score >= 70 ? "bg-lime-500" : score >= 55 ? "bg-yellow-500" : score >= 40 ? "bg-orange-500" : "bg-red-500";
+function ScoreBar({ label, score, grade, weight, icon }: { label: string; score: number; grade: string; weight: number; icon: string }) {
+  const color = score >= 85 ? "bg-emerald-500" : score >= 70 ? "bg-lime-500" : score >= 55 ? "bg-amber-500" : score >= 40 ? "bg-orange-500" : "bg-red-500";
   return (
-    <div className="mb-3">
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-sm font-medium text-gray-300">{label}</span>
+    <div className="mb-4 last:mb-0">
+      <div className="flex justify-between items-center mb-1.5">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-500">({Math.round(weight * 100)}%)</span>
-          <span className="text-sm font-bold text-white">{score}/100</span>
+          <span className="text-white/40"><Icon d={icon} size={16} /></span>
+          <span className="text-sm font-medium text-white/70">{label}</span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs text-white/30">{Math.round(weight * 100)}%</span>
+          <span className="text-sm font-semibold text-white">{score}<span className="text-white/30">/100</span></span>
           <GradeBadge grade={grade} />
         </div>
       </div>
-      <div className="w-full bg-gray-700 rounded-full h-3">
-        <div className={`${barColor} h-3 rounded-full transition-all duration-1000`} style={{ width: `${score}%` }} />
+      <div className="w-full bg-white/[0.04] rounded-full h-1.5">
+        <div className={`${color} h-1.5 rounded-full transition-all duration-1000`} style={{ width: `${score}%` }} />
       </div>
     </div>
   );
 }
 
-const MODULE_LABELS: Record<string, string> = {
-  site_web: "🌐 Site Web",
-  reputation: "⭐ Réputation",
-  pricing: "💰 Pricing",
-  commissions: "📊 Commissions",
+const MODULE_META: Record<string, { label: string; icon: string }> = {
+  site_web: { label: "Site Web", icon: Icons.globe },
+  reputation: { label: "Réputation", icon: Icons.star },
+  pricing: { label: "Pricing", icon: Icons.tag },
+  commissions: { label: "Commissions", icon: Icons.chart },
 };
 
 export default function ScorePage() {
@@ -54,25 +81,21 @@ export default function ScorePage() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<GlobalAuditResponse | null>(null);
 
-  // Identité
   const [riadName, setRiadName] = useState("");
   const [city, setCity] = useState("Marrakech");
   const [stars, setStars] = useState(3);
   const [url, setUrl] = useState("");
 
-  // Finances
   const [price, setPrice] = useState("");
   const [rooms, setRooms] = useState("8");
   const [occupancy, setOccupancy] = useState("65");
   const [revenue, setRevenue] = useState("");
 
-  // OTA
   const [booking, setBooking] = useState("60");
   const [airbnb, setAirbnb] = useState("15");
   const [expedia, setExpedia] = useState("5");
   const [direct, setDirect] = useState("20");
 
-  // Réputation
   const [bookingScore, setBookingScore] = useState("");
   const [bookingReviews, setBookingReviews] = useState("");
   const [taScore, setTaScore] = useState("");
@@ -113,37 +136,50 @@ export default function ScorePage() {
         response_rate_percent: parseFloat(responseRate) || 0,
       });
       setResult(data);
-    } catch (err: any) {
-      setError(err.message || "Erreur serveur");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erreur serveur";
+      setError(msg);
     } finally {
       setLoading(false);
     }
   }
 
-  const inputClass = "w-full bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-[#D4A843]";
-  const labelClass = "block text-sm font-medium text-gray-300 mb-1";
-  const sectionClass = "bg-gray-900/50 border border-gray-700 rounded-xl p-5 mb-6";
+  const inputClass = "w-full bg-[#0a1628] border border-white/[0.08] rounded-lg px-3 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#e76f51]/50 focus:ring-1 focus:ring-[#e76f51]/20 transition";
+  const labelClass = "block text-xs font-medium text-white/40 mb-1.5 uppercase tracking-wide";
+  const sectionClass = "bg-[#0f1d32] border border-white/[0.06] rounded-xl p-6 mb-5";
 
   return (
-    <div className="min-h-screen bg-[#0F1A2E] text-white">
+    <div className="min-h-screen bg-[#0a1628] text-white">
       <Header />
-      <main className="max-w-4xl mx-auto px-4 py-10">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            🏆 Score Global <span className="text-[#D4A843]">RiadPulse</span>
+      <main className="max-w-3xl mx-auto px-4 py-12">
+
+        {/* HEADER */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 text-white/30 text-xs uppercase tracking-widest mb-3">
+            <Icon d={Icons.trophy} size={14} />
+            Audit Digital
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">
+            Score Global <span className="text-[#f4a261]">RiadPulse</span>
           </h1>
-          <p className="text-gray-400">
-            Remplissez les 4 sections pour obtenir votre score complet et votre manque à gagner annuel.
+          <p className="text-white/40 text-sm max-w-lg mx-auto">
+            Remplissez les 4 sections pour obtenir votre score complet et estimer votre manque a gagner annuel.
           </p>
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* SECTION 1 : IDENTITÉ */}
+
+          {/* IDENTITÉ */}
           <div className={sectionClass}>
-            <h2 className="text-lg font-bold text-[#D4A843] mb-4">🏠 Identité du riad</h2>
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="w-8 h-8 rounded-lg bg-[#e76f51]/10 flex items-center justify-center text-[#e76f51]">
+                <Icon d={Icons.building} size={16} />
+              </div>
+              <h2 className="text-sm font-semibold text-white/80">Identite du riad</h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={labelClass}>Nom du riad *</label>
+                <label className={labelClass}>Nom du riad</label>
                 <input className={inputClass} value={riadName} onChange={e => setRiadName(e.target.value)} placeholder="Riad Dar Zen" />
               </div>
               <div>
@@ -153,9 +189,9 @@ export default function ScorePage() {
                 </select>
               </div>
               <div>
-                <label className={labelClass}>Étoiles</label>
+                <label className={labelClass}>Etoiles</label>
                 <select className={inputClass} value={stars} onChange={e => setStars(parseInt(e.target.value))}>
-                  {[1, 2, 3, 4, 5].map(s => <option key={s} value={s}>{s} ⭐</option>)}
+                  {[1, 2, 3, 4, 5].map(s => <option key={s} value={s}>{s} etoiles</option>)}
                 </select>
               </div>
               <div>
@@ -165,9 +201,14 @@ export default function ScorePage() {
             </div>
           </div>
 
-          {/* SECTION 2 : FINANCES */}
+          {/* FINANCES */}
           <div className={sectionClass}>
-            <h2 className="text-lg font-bold text-[#D4A843] mb-4">💰 Finances</h2>
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="w-8 h-8 rounded-lg bg-[#f4a261]/10 flex items-center justify-center text-[#f4a261]">
+                <Icon d={Icons.currency} size={16} />
+              </div>
+              <h2 className="text-sm font-semibold text-white/80">Finances</h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={labelClass}>Prix moyen / nuit (MAD)</label>
@@ -188,9 +229,14 @@ export default function ScorePage() {
             </div>
           </div>
 
-          {/* SECTION 3 : OTA */}
+          {/* OTA */}
           <div className={sectionClass}>
-            <h2 className="text-lg font-bold text-[#D4A843] mb-4">📊 Répartition des réservations (%)</h2>
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                <Icon d={Icons.chart} size={16} />
+              </div>
+              <h2 className="text-sm font-semibold text-white/80">Repartition des reservations (%)</h2>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <label className={labelClass}>Booking</label>
@@ -211,9 +257,14 @@ export default function ScorePage() {
             </div>
           </div>
 
-          {/* SECTION 4 : RÉPUTATION */}
+          {/* RÉPUTATION */}
           <div className={sectionClass}>
-            <h2 className="text-lg font-bold text-[#D4A843] mb-4">⭐ Réputation en ligne</h2>
+            <div className="flex items-center gap-2.5 mb-5">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
+                <Icon d={Icons.star} size={16} />
+              </div>
+              <h2 className="text-sm font-semibold text-white/80">Reputation en ligne</h2>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className={labelClass}>Booking (note /10)</label>
@@ -224,7 +275,7 @@ export default function ScorePage() {
                 <input className={inputClass} type="number" value={bookingReviews} onChange={e => setBookingReviews(e.target.value)} placeholder="120" />
               </div>
               <div>
-                <label className={labelClass}>Taux de réponse (%)</label>
+                <label className={labelClass}>Taux de reponse (%)</label>
                 <input className={inputClass} type="number" value={responseRate} onChange={e => setResponseRate(e.target.value)} placeholder="40" />
               </div>
             </div>
@@ -250,105 +301,144 @@ export default function ScorePage() {
             </div>
           </div>
 
-          {error && <div className="bg-red-900/50 border border-red-500 rounded-lg p-3 mb-4 text-red-300">{error}</div>}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-5 text-red-400 text-sm flex items-center gap-2">
+              <Icon d={Icons.warning} size={16} />
+              {error}
+            </div>
+          )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#C2452D] hover:bg-[#a83820] text-white font-bold py-4 rounded-xl text-lg transition disabled:opacity-50"
+            className="w-full bg-[#e76f51] hover:bg-[#d45a3c] text-white font-semibold py-3.5 rounded-xl text-sm transition disabled:opacity-40 flex items-center justify-center gap-2"
           >
-            {loading ? "⏳ Calcul en cours (audit du site web en cours)..." : "🏆 Calculer mon Score RiadPulse"}
+            {loading ? (
+              <>
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                Audit en cours...
+              </>
+            ) : (
+              <>
+                <Icon d={Icons.bolt} size={16} />
+                Calculer mon Score RiadPulse
+              </>
+            )}
           </button>
         </form>
 
-        {/* RÉSULTATS */}
+        {/* ── RÉSULTATS ── */}
         {result && (
-          <div className="mt-10 space-y-6">
+          <div className="mt-14 space-y-6">
+
             {/* SCORE GLOBAL */}
-            <div className="bg-gradient-to-br from-[#1B2A4A] to-[#0F1A2E] border-2 border-[#D4A843] rounded-2xl p-8 text-center">
-              <h2 className="text-xl text-gray-400 mb-2">Score Global RiadPulse</h2>
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <span className="text-7xl font-black text-[#D4A843]">{result.global_score}</span>
-                <span className="text-3xl text-gray-500">/100</span>
-                <GradeBadge grade={result.grade} />
+            <div className="bg-[#0f1d32] border border-white/[0.06] rounded-2xl p-8 text-center">
+              <p className="text-xs uppercase tracking-widest text-white/30 mb-4">Score Global RiadPulse</p>
+              <div className="flex items-center justify-center gap-4 mb-5">
+                <span className="text-6xl font-bold tracking-tight text-[#f4a261]">{result.global_score}</span>
+                <div className="text-left">
+                  <span className="text-xl text-white/20">/100</span>
+                  <div className="mt-1"><GradeBadge grade={result.grade} /></div>
+                </div>
               </div>
+
               {result.total_annual_loss_mad > 0 && (
-                <div className="bg-red-900/30 border border-red-700 rounded-xl p-4 mt-4">
-                  <p className="text-red-400 text-sm mb-1">💸 Manque à gagner estimé</p>
-                  <p className="text-3xl font-black text-red-300">
-                    {result.total_annual_loss_mad.toLocaleString("fr-FR")} MAD/an
+                <div className="bg-red-500/[0.06] border border-red-500/10 rounded-xl p-4 mt-5 inline-block">
+                  <div className="flex items-center gap-2 text-red-400/70 text-xs mb-1">
+                    <Icon d={Icons.warning} size={14} />
+                    Manque a gagner estime
+                  </div>
+                  <p className="text-2xl font-bold text-red-400">
+                    {result.total_annual_loss_mad.toLocaleString("fr-FR")} MAD
+                    <span className="text-sm font-normal text-red-400/50 ml-1">/an</span>
                   </p>
-                  <p className="text-red-400 text-sm">≈ {result.total_annual_loss_eur.toLocaleString("fr-FR")} €/an</p>
+                  <p className="text-red-400/40 text-xs mt-0.5">
+                    environ {result.total_annual_loss_eur.toLocaleString("fr-FR")} EUR/an
+                  </p>
                 </div>
               )}
-              <p className="text-gray-400 text-sm mt-4">📍 {result.city_position}</p>
+
+              <div className="flex items-center justify-center gap-1.5 text-white/30 text-xs mt-5">
+                <Icon d={Icons.mappin} size={12} />
+                {result.city_position}
+              </div>
+
               <div className="mt-6">
                 <button
                   onClick={() => generatePDF(result)}
-                  className="bg-[#D4A843] hover:bg-[#b89135] text-[#0F1A2E] font-bold py-3 px-6 rounded-xl transition inline-flex items-center gap-2 text-base shadow-lg cursor-pointer"
+                  className="bg-[#f4a261] hover:bg-[#e0934f] text-[#0a1628] font-semibold py-2.5 px-5 rounded-lg transition inline-flex items-center gap-2 text-sm cursor-pointer"
                 >
-                  📥 Télécharger le rapport PDF
+                  <Icon d={Icons.download} size={16} />
+                  Telecharger le rapport PDF
                 </button>
-              </div>	
+              </div>
             </div>
 
             {/* SOUS-SCORES */}
-            <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
-              <h3 className="text-lg font-bold text-white mb-4">📊 Détail par module</h3>
-              {Object.entries(result.sub_scores).map(([key, sub]) => (
-                <ScoreBar
-                  key={key}
-                  label={MODULE_LABELS[key] || key}
-                  score={sub.score}
-                  grade={sub.grade}
-                  weight={sub.weight}
-                />
-              ))}
+            <div className="bg-[#0f1d32] border border-white/[0.06] rounded-xl p-6">
+              <h3 className="text-xs uppercase tracking-widest text-white/30 mb-5">Detail par module</h3>
+              {Object.entries(result.sub_scores).map(([key, sub]) => {
+                const meta = MODULE_META[key] || { label: key, icon: Icons.check };
+                return (
+                  <ScoreBar
+                    key={key}
+                    label={meta.label}
+                    score={sub.score}
+                    grade={sub.grade}
+                    weight={sub.weight}
+                    icon={meta.icon}
+                  />
+                );
+              })}
             </div>
 
             {/* PRIORITÉS */}
             {result.top_priorities.length > 0 && (
-              <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
-                <h3 className="text-lg font-bold text-white mb-4">🎯 Top priorités</h3>
+              <div className="bg-[#0f1d32] border border-white/[0.06] rounded-xl p-6">
+                <h3 className="text-xs uppercase tracking-widest text-white/30 mb-5">Top priorites</h3>
                 <div className="space-y-3">
                   {result.top_priorities.map((p) => (
-                    <div key={p.rank} className="bg-gray-800 rounded-lg p-4 border-l-4 border-[#D4A843]">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="font-bold text-white">
-                          #{p.rank} [{p.module}] {p.title}
-                        </span>
-                        <span className="text-[#D4A843] font-bold text-sm whitespace-nowrap ml-3">
+                    <div key={p.rank} className="bg-white/[0.02] rounded-lg p-4 border-l-2 border-[#e76f51]/60 hover:bg-white/[0.04] transition">
+                      <div className="flex justify-between items-start gap-3 mb-1.5">
+                        <div className="flex items-start gap-2">
+                          <span className="text-[#e76f51] text-xs font-bold mt-0.5 shrink-0">#{p.rank}</span>
+                          <span className="text-sm font-medium text-white/80">{p.title}</span>
+                        </div>
+                        <span className="text-[#f4a261] font-semibold text-sm whitespace-nowrap shrink-0">
                           +{p.impact_mad.toLocaleString("fr-FR")} MAD
                         </span>
                       </div>
-                      <p className="text-gray-400 text-sm">{p.detail}</p>
-                      <span className={`inline-block mt-2 text-xs px-2 py-1 rounded ${
-                        p.difficulty === "facile" ? "bg-green-900 text-green-300" :
-                        p.difficulty === "moyenne" ? "bg-yellow-900 text-yellow-300" :
-                        "bg-red-900 text-red-300"
-                      }`}>
-                        {p.difficulty}
-                      </span>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded ${
+                          p.difficulty === "facile" ? "bg-emerald-500/10 text-emerald-400/70" :
+                          p.difficulty === "moyenne" ? "bg-amber-500/10 text-amber-400/70" :
+                          "bg-red-500/10 text-red-400/70"
+                        }`}>
+                          {p.difficulty}
+                        </span>
+                        <span className="text-[10px] text-white/20 uppercase tracking-wide">{p.module}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* LIENS VERS AUDITS DÉTAILLÉS */}
+            {/* AUDITS DÉTAILLÉS */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Link href="/audit" className="bg-gray-800 hover:bg-gray-700 rounded-lg p-3 text-center text-sm transition">
-                🌐 Audit Site Web
-              </Link>
-              <Link href="/audit/pricing" className="bg-gray-800 hover:bg-gray-700 rounded-lg p-3 text-center text-sm transition">
-                💰 Audit Pricing
-              </Link>
-              <Link href="/audit/reputation" className="bg-gray-800 hover:bg-gray-700 rounded-lg p-3 text-center text-sm transition">
-                ⭐ Audit Réputation
-              </Link>
-              <Link href="/audit/commissions" className="bg-gray-800 hover:bg-gray-700 rounded-lg p-3 text-center text-sm transition">
-                📊 Audit Commissions
-              </Link>
+              {[
+                { href: "/audit", label: "Site Web", icon: Icons.globe },
+                { href: "/audit/pricing", label: "Pricing", icon: Icons.tag },
+                { href: "/audit/reputation", label: "Reputation", icon: Icons.star },
+                { href: "/audit/commissions", label: "Commissions", icon: Icons.chart },
+              ].map(link => (
+                <Link key={link.href} href={link.href} className="bg-[#0f1d32] border border-white/[0.06] hover:border-white/[0.12] rounded-lg p-4 text-center transition group">
+                  <div className="text-white/30 group-hover:text-[#e76f51] transition flex justify-center mb-2">
+                    <Icon d={link.icon} size={18} />
+                  </div>
+                  <span className="text-xs text-white/40 group-hover:text-white/60 transition">{link.label}</span>
+                </Link>
+              ))}
             </div>
           </div>
         )}
