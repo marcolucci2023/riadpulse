@@ -365,7 +365,7 @@ export default function ScorePage() {
 
               <div className="mt-6">
                 <button
-                  onClick={() => generatePDF(result)}
+                  onClick={() => generatePDF(result, { riad_name: riadName, city, stars, url, current_price_mad: parseFloat(price) || 0, num_rooms: parseInt(rooms) || 5, occupancy_rate: (parseFloat(occupancy) || 60) / 100, annual_revenue_mad: parseFloat(revenue) || 0, booking_percent: parseFloat(booking) || 0, airbnb_percent: parseFloat(airbnb) || 0, expedia_percent: parseFloat(expedia) || 0, direct_percent: parseFloat(direct) || 0, booking_score: parseFloat(bookingScore) || 0, booking_reviews: parseInt(bookingReviews) || 0, tripadvisor_score: parseFloat(taScore) || 0, tripadvisor_reviews: parseInt(taReviews) || 0, google_score: parseFloat(googleScore) || 0, google_reviews: parseInt(googleReviews) || 0, response_rate_percent: parseFloat(responseRate) || 0 })}
                   className="bg-[#f4a261] hover:bg-[#e0934f] text-[#0a1628] font-semibold py-2.5 px-5 rounded-lg transition inline-flex items-center gap-2 text-sm cursor-pointer"
                 >
                   <Icon d={Icons.download} size={16} />
