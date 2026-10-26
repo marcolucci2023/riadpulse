@@ -46,7 +46,9 @@ async def calculate_global_score(req) -> dict:
                 "max": sw["max"],
                 "details": sw.get("details", {}),
             }
-            active_weights["site_web"] = WEIGHTS["site_web"]
+            # Ne compter dans le score global que si le site est accessible
+            if sw["score"] > 0:
+                active_weights["site_web"] = WEIGHTS["site_web"]
             for r in sw.get("recommendations", []):
                 action = r if isinstance(r, str) else r.get("action", str(r))
                 gain = 20000 if isinstance(r, str) else r.get("gain_mad", 20000)

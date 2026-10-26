@@ -4,248 +4,212 @@ Analyse un site via httpx et retourne un score sur 100.
 """
 import time
 import httpx
-from app.schemas.audit import AuditCriterion
-
-
-async def check_https(url: str, client: httpx.AsyncClient) -> AuditCriterion:
-    """Vérifie si le site utilise HTTPS avec un certificat valide."""
-    name = "HTTPS / Sécurité"
-    max_score = 25
-
-    if not url.startswith("https://"):
-        return AuditCriterion(
-            name=name,
-            score=0,
-            max_score=max_score,
-            detail="Le site n'utilise pas HTTPS. Les données des visiteurs ne sont pas chiffrées.",
-        )
-
-    try:
-        response = await client.get(url, follow_redirects=True, timeout=10)
-        if response.status_code < 400:
-            return AuditCriterion(
-                name=name,
-                score=max_score,
-                max_score=max_score,
-                detail="HTTPS actif avec certificat valide.",
-            )
-        else:
-            return AuditCriterion(
-                name=name,
-                score=10,
-                max_score=max_score,
-                detail=f"HTTPS actif mais le site retourne une erreur {response.status_code}.",
-            )
-    except httpx.ConnectError:
-        return AuditCriterion(
-            name=name,
-            score=5,
-            max_score=max_score,
-            detail="HTTPS configuré mais le certificat semble invalide ou expiré.",
-        )
-    except Exception as e:
-        return AuditCriterion(
-            name=name,
-            score=0,
-            max_score=max_score,
-            detail=f"Erreur de connexion HTTPS : {str(e)}",
-        )
-
-
-async def check_speed(url: str, client: httpx.AsyncClient) -> AuditCriterion:
-    """Mesure le temps de réponse du serveur (TTFB)."""
-    name = "Vitesse de chargement"
-    max_score = 25
-
-    try:
-        start = time.time()
-        response = await client.get(url, follow_redirects=True, timeout=15)
-        ttfb = time.time() - start
-
-        if ttfb < 1.0:
-            score = max_score
-            detail = f"Excellent : {ttfb:.2f}s de temps de réponse."
-        elif ttfb < 2.0:
-            score = 20
-            detail = f"Bon : {ttfb:.2f}s. Peut être amélioré."
-        elif ttfb < 3.0:
-            score = 15
-            detail = f"Moyen : {ttfb:.2f}s. Les visiteurs risquent de partir."
-        elif ttfb < 5.0:
-            score = 8
-            detail = f"Lent : {ttfb:.2f}s. Impact négatif sur le SEO et les conversions."
-        else:
-            score = 3
-            detail = f"Très lent : {ttfb:.2f}s. Perte de clients garantie."
-
-        return AuditCriterion(
-            name=name,
-            score=score,
-            max_score=max_score,
-            detail=detail,
-        )
-    except Exception as e:
-        return AuditCriterion(
-            name=name,
-            score=0,
-            max_score=max_score,
-            detail=f"Impossible de mesurer la vitesse : {str(e)}",
-        )
-
-
-async def check_responsive(url: str, client: httpx.AsyncClient) -> AuditCriterion:
-    """Vérifie la présence de la balise viewport (indicateur de responsive)."""
-    name = "Responsive (mobile)"
-    max_score = 25
-
-    try:
-        response = await client.get(url, follow_redirects=True, timeout=10)
-        html = response.text.lower()
-
-        has_viewport = "viewport" in html
-        has_media_queries = "@media" in html
-
-        if has_viewport and has_media_queries:
-            score = max_score
-            detail = "Balise viewport et media queries détectées. Le site est responsive."
-        elif has_viewport:
-            score = 18
-            detail = "Balise viewport présente mais pas de media queries détectées. Responsive partiel."
-        else:
-            score = 5
-            detail = "Pas de balise viewport. Le site n'est probablement pas adapté aux mobiles."
-
-        return AuditCriterion(
-            name=name,
-            score=score,
-            max_score=max_score,
-            detail=detail,
-        )
-    except Exception as e:
-        return AuditCriterion(
-            name=name,
-            score=0,
-            max_score=max_score,
-            detail=f"Impossible de vérifier le responsive : {str(e)}",
-        )
-
-
-async def check_tech(url: str, client: httpx.AsyncClient) -> AuditCriterion:
-    """Détecte la technologie utilisée par le site."""
-    name = "Technologie"
-    max_score = 25
-
-    try:
-        response = await client.get(url, follow_redirects=True, timeout=10)
-        html = response.text.lower()
-        headers = {k.lower(): v.lower() for k, v in response.headers.items()}
-
-        tech_detected = []
-
-        # WordPress
-        if "wp-content" in html or "wp-includes" in html or "wordpress" in headers.get("x-powered-by", ""):
-            tech_detected.append("WordPress")
-
-        # Wix
-        if "wix.com" in html or "x-wix-request-id" in headers:
-            tech_detected.append("Wix")
-
-        # Squarespace
-        if "squarespace" in html:
-            tech_detected.append("Squarespace")
-
-        # Shopify
-        if "cdn.shopify.com" in html or "x-shopid" in headers:
-            tech_detected.append("Shopify")
-
-        # Joomla
-        if "joomla" in html or "joomla" in headers.get("x-powered-by", ""):
-            tech_detected.append("Joomla")
-
-        if tech_detected:
-            tech_str = ", ".join(tech_detected)
-            # WordPress/Wix = OK mais limité pour le SEO
-            if "WordPress" in tech_detected:
-                score = 20
-                detail = f"Technologie détectée : {tech_str}. Bon choix, mais vérifiez les plugins de SEO."
-            elif "Wix" in tech_detected or "Squarespace" in tech_detected:
-                score = 12
-                detail = f"Technologie détectée : {tech_str}. Limité pour le SEO et la personnalisation."
-            else:
-                score = 18
-                detail = f"Technologie détectée : {tech_str}."
-        else:
-            score = 15
-            detail = "Technologie non identifiée. Probablement un site sur mesure ou statique."
-
-        return AuditCriterion(
-            name=name,
-            score=score,
-            max_score=max_score,
-            detail=detail,
-        )
-    except Exception as e:
-        return AuditCriterion(
-            name=name,
-            score=0,
-            max_score=max_score,
-            detail=f"Impossible de détecter la technologie : {str(e)}",
-        )
-
-
-def calculate_grade(total_score: int, max_total: int) -> str:
-    """Calcule la lettre de note (A-F) basée sur le score."""
-    percentage = (total_score / max_total) * 100 if max_total > 0 else 0
-
-    if percentage >= 90:
-        return "A"
-    elif percentage >= 75:
-        return "B"
-    elif percentage >= 60:
-        return "C"
-    elif percentage >= 40:
-        return "D"
-    else:
-        return "F"
 
 
 async def audit_site_web(url: str) -> dict:
     """
     Lance l'audit complet d'un site web.
-    Retourne un dict avec le score total, la note et les détails par critère.
+    Retourne un dict compatible avec global_score.py :
+    {score, max, details, recommendations}
     """
-    # Normaliser l'URL
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "https://" + url
 
     headers = {
-        "User-Agent": "RiadPulse-Audit/1.0 (audit digital pour riads au Maroc)"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
 
-    async with httpx.AsyncClient(headers=headers, verify=False) as client:
-        criteria = []
+    criteria_scores = {}
+    criteria_details = {}
+    recommendations = []
+    html = ""
+    response_headers = {}
+    site_accessible = False
 
-        # Lancer les 4 vérifications
-        https_result = await check_https(url, client)
-        criteria.append(https_result)
+    try:
+        async with httpx.AsyncClient(headers=headers, verify=False, timeout=15) as client:
+            start = time.time()
+            response = await client.get(url, follow_redirects=True)
+            ttfb = time.time() - start
+            site_accessible = True
+            html = response.text.lower()
+            response_headers = {k.lower(): v.lower() for k, v in response.headers.items()}
 
-        speed_result = await check_speed(url, client)
-        criteria.append(speed_result)
+            # --- 1. HTTPS (25 pts) ---
+            if url.startswith("https://"):
+                if response.status_code < 400:
+                    criteria_scores["https"] = 25
+                    criteria_details["https"] = "HTTPS actif avec certificat valide."
+                else:
+                    criteria_scores["https"] = 10
+                    criteria_details["https"] = f"HTTPS actif mais erreur {response.status_code}."
+                    recommendations.append({
+                        "action": "Votre site HTTPS retourne une erreur. Vérifiez le certificat SSL.",
+                        "gain_mad": 15000,
+                        "difficulty": "facile",
+                    })
+            else:
+                criteria_scores["https"] = 0
+                criteria_details["https"] = "Pas de HTTPS. Les données visiteurs ne sont pas chiffrées."
+                recommendations.append({
+                    "action": "Activez HTTPS gratuitement via Let's Encrypt. Google pénalise les sites non-sécurisés.",
+                    "gain_mad": 20000,
+                    "difficulty": "facile",
+                })
 
-        responsive_result = await check_responsive(url, client)
-        criteria.append(responsive_result)
+            # --- 2. Vitesse (25 pts) ---
+            if ttfb < 1.0:
+                criteria_scores["speed"] = 25
+                criteria_details["speed"] = f"Excellent : {ttfb:.2f}s."
+            elif ttfb < 2.0:
+                criteria_scores["speed"] = 20
+                criteria_details["speed"] = f"Bon : {ttfb:.2f}s."
+            elif ttfb < 3.0:
+                criteria_scores["speed"] = 15
+                criteria_details["speed"] = f"Moyen : {ttfb:.2f}s."
+                recommendations.append({
+                    "action": "Compressez les images (WebP) et activez le cache navigateur pour passer sous 2s.",
+                    "gain_mad": 25000,
+                    "difficulty": "moyenne",
+                })
+            elif ttfb < 5.0:
+                criteria_scores["speed"] = 8
+                criteria_details["speed"] = f"Lent : {ttfb:.2f}s."
+                recommendations.append({
+                    "action": f"Votre site met {ttfb:.1f}s à charger. 53% des visiteurs partent après 3s. Passez chez un hébergeur plus rapide.",
+                    "gain_mad": 35000,
+                    "difficulty": "moyenne",
+                })
+            else:
+                criteria_scores["speed"] = 3
+                criteria_details["speed"] = f"Très lent : {ttfb:.2f}s."
+                recommendations.append({
+                    "action": f"Temps de chargement critique ({ttfb:.1f}s). Changez d'hébergeur ou utilisez un CDN comme Cloudflare.",
+                    "gain_mad": 40000,
+                    "difficulty": "moyenne",
+                })
 
-        tech_result = await check_tech(url, client)
-        criteria.append(tech_result)
+            # --- 3. Responsive (25 pts) ---
+            has_viewport = "viewport" in html
+            has_media = "@media" in html
 
-    total_score = sum(c.score for c in criteria)
-    max_total = sum(c.max_score for c in criteria)
-    grade = calculate_grade(total_score, max_total)
+            if has_viewport and has_media:
+                criteria_scores["responsive"] = 25
+                criteria_details["responsive"] = "Site responsive (viewport + media queries)."
+            elif has_viewport:
+                criteria_scores["responsive"] = 18
+                criteria_details["responsive"] = "Viewport présent mais media queries manquantes."
+                recommendations.append({
+                    "action": "Ajoutez des media queries CSS pour optimiser l'affichage sur mobile.",
+                    "gain_mad": 15000,
+                    "difficulty": "moyenne",
+                })
+            else:
+                criteria_scores["responsive"] = 5
+                criteria_details["responsive"] = "Pas de balise viewport. Non adapté aux mobiles."
+                recommendations.append({
+                    "action": "Ajoutez la balise <meta name='viewport'> — 70% des voyageurs marocains réservent depuis leur téléphone.",
+                    "gain_mad": 30000,
+                    "difficulty": "facile",
+                })
+
+            # --- 4. Technologie (25 pts) ---
+            tech_detected = []
+            if "wp-content" in html or "wordpress" in response_headers.get("x-powered-by", ""):
+                tech_detected.append("WordPress")
+            if "wix.com" in html or "x-wix-request-id" in response_headers:
+                tech_detected.append("Wix")
+            if "squarespace" in html:
+                tech_detected.append("Squarespace")
+            if "cdn.shopify.com" in html:
+                tech_detected.append("Shopify")
+
+            if "WordPress" in tech_detected:
+                criteria_scores["tech"] = 20
+                criteria_details["tech"] = "WordPress détecté. Bon choix, vérifiez les plugins SEO."
+                if "yoast" not in html and "rank-math" not in html and "seo" not in html:
+                    recommendations.append({
+                        "action": "Installez Yoast SEO ou RankMath sur WordPress pour améliorer votre référencement.",
+                        "gain_mad": 20000,
+                        "difficulty": "facile",
+                    })
+            elif "Wix" in tech_detected or "Squarespace" in tech_detected:
+                criteria_scores["tech"] = 12
+                criteria_details["tech"] = f"{'/'.join(tech_detected)} détecté. Limité pour le SEO."
+                recommendations.append({
+                    "action": "Wix/Squarespace limite votre SEO. Envisagez une migration WordPress pour plus de flexibilité.",
+                    "gain_mad": 25000,
+                    "difficulty": "difficile",
+                })
+            elif tech_detected:
+                criteria_scores["tech"] = 18
+                criteria_details["tech"] = f"Technologie : {', '.join(tech_detected)}."
+            else:
+                criteria_scores["tech"] = 15
+                criteria_details["tech"] = "Technologie non identifiée (site sur mesure ou statique)."
+
+            # --- Vérifications bonus ---
+            if "booking.com" not in html and "widget" not in html and "reservation" not in html:
+                recommendations.append({
+                    "action": "Aucun moteur de réservation détecté sur votre site. Ajoutez un widget de réservation directe.",
+                    "gain_mad": 30000,
+                    "difficulty": "moyenne",
+                })
+
+            if "whatsapp" not in html and "wa.me" not in html:
+                recommendations.append({
+                    "action": "Ajoutez un bouton WhatsApp sur votre site — canal #1 au Maroc pour les réservations directes.",
+                    "gain_mad": 15000,
+                    "difficulty": "facile",
+                })
+
+    except httpx.ConnectTimeout:
+        criteria_scores = {"https": 5, "speed": 0, "responsive": 0, "tech": 0}
+        criteria_details = {
+            "https": "Timeout — le site met trop de temps à répondre.",
+            "speed": "Non mesurable (timeout).",
+            "responsive": "Non vérifiable (timeout).",
+            "tech": "Non détectable (timeout).",
+        }
+        recommendations.append({
+            "action": "Votre site est inaccessible (>15s). Vérifiez l'hébergement immédiatement — chaque heure d'indisponibilité = réservations perdues.",
+            "gain_mad": 50000,
+            "difficulty": "moyenne",
+        })
+
+    except httpx.ConnectError:
+        criteria_scores = {"https": 0, "speed": 0, "responsive": 0, "tech": 0}
+        criteria_details = {
+            "https": "Site inaccessible.",
+            "speed": "Non mesurable.",
+            "responsive": "Non vérifiable.",
+            "tech": "Non détectable.",
+        }
+        recommendations.append({
+            "action": "Votre site est hors ligne. Contactez votre hébergeur urgemment.",
+            "gain_mad": 50000,
+            "difficulty": "moyenne",
+        })
+
+    except Exception as e:
+        criteria_scores = {"https": 0, "speed": 0, "responsive": 0, "tech": 0}
+        criteria_details = {
+            "https": f"Erreur : {str(e)[:80]}",
+            "speed": "Non mesurable.",
+            "responsive": "Non vérifiable.",
+            "tech": "Non détectable.",
+        }
+        recommendations.append({
+            "action": f"Erreur d'audit : {str(e)[:60]}. Vérifiez que l'URL est correcte.",
+            "gain_mad": 10000,
+            "difficulty": "facile",
+        })
+
+    total_score = sum(criteria_scores.values())
 
     return {
-        "url": url,
-        "total_score": total_score,
-        "max_total": max_total,
-        "grade": grade,
-        "criteria": [c.model_dump() for c in criteria],
+        "score": total_score,
+        "max": 100,
+        "details": criteria_details,
+        "recommendations": recommendations,
     }
