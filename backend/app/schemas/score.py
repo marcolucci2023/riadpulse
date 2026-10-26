@@ -1,51 +1,29 @@
 from pydantic import BaseModel
-from typing import List, Optional, Any
+from typing import Optional, List, Dict, Any
 
 
 class GlobalAuditRequest(BaseModel):
-    # Identité
     riad_name: str
     city: str
-    stars: int = 3
-    url: str = ""
-
-    # Finances
-    current_price_mad: float = 0
-    num_rooms: int = 5
-    occupancy_rate: float = 0.6
-    annual_revenue_mad: float = 0
-
-    # Répartition OTA
-    booking_percent: float = 0
-    airbnb_percent: float = 0
-    expedia_percent: float = 0
-    direct_percent: float = 0
-
-    # Réputation
-    booking_score: float = 0
-    booking_reviews: int = 0
-    tripadvisor_score: float = 0
-    tripadvisor_reviews: int = 0
-    google_score: float = 0
-    google_reviews: int = 0
-    response_rate_percent: float = 0
-
-
-class SubScore(BaseModel):
-    score: float
-    max_score: float = 100
-    grade: str
-    weight: float
-    weighted_score: float
-
-
-class Priority(BaseModel):
-    rank: int
-    module: str
-    title: str
-    detail: str
-    impact_mad: float = 0
-    difficulty: str = "moyenne"
+    url: Optional[str] = None
+    current_price_mad: Optional[float] = None
+    stars: Optional[int] = None
+    num_rooms: Optional[int] = None
+    occupancy_rate: Optional[float] = None
+    booking_score: Optional[float] = None
+    booking_reviews: Optional[int] = None
+    tripadvisor_score: Optional[float] = None
+    tripadvisor_reviews: Optional[int] = None
+    google_score: Optional[float] = None
+    google_reviews: Optional[int] = None
+    response_rate_percent: Optional[float] = None
+    negative_reviews_last_6m: Optional[int] = None
+    annual_revenue_mad: Optional[float] = None
+    booking_percent: Optional[float] = None
+    airbnb_percent: Optional[float] = None
+    expedia_percent: Optional[float] = 0
+    direct_percent: Optional[float] = None
+    avg_night_price_mad: Optional[float] = None
 
 
 class GlobalAuditResponse(BaseModel):
@@ -53,9 +31,9 @@ class GlobalAuditResponse(BaseModel):
     city: str
     global_score: float
     grade: str
-    total_annual_loss_mad: float
-    total_annual_loss_eur: float
-    sub_scores: dict[str, SubScore]
-    top_priorities: List[Priority]
-    city_position: str
-    modules: dict[str, Any]
+    sub_scores: Dict[str, Any]
+    top_priorities: List[Dict[str, Any]]
+    total_estimated_loss_mad: float
+    pricing: Dict[str, Any]
+    reputation: Dict[str, Any]
+    commissions: Dict[str, Any]

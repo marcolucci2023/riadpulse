@@ -1,32 +1,7 @@
 """
-Service d'audit réputation pour RiadPulse.
-Analyse les notes et avis d'un riad sur les 3 plateformes principales.
+Reputation analysis service for RiadPulse.
+Aggregates scores from Booking, TripAdvisor, and Google.
 """
-from app.schemas.reputation import ReputationCriterion, ReputationRecommendation
-
-# Notes moyennes par ville (sur 10) pour les riads 3-4 étoiles
-# Source : analyse agrégée Booking/TripAdvisor 2023-2024
-CITY_BENCHMARKS: dict[str, float] = {
-    "marrakech": 8.2,
-    "fes": 8.0,
-    "essaouira": 8.4,
-    "chefchaouen": 7.8,
-    "tanger": 7.9,
-    "rabat": 7.7,
-}
-
-
-def normalize_city(city: str) -> str:
-    city_lower = city.strip().lower()
-    aliases = {
-        "marrakech": "marrakech", "marrakesh": "marrakech",
-        "fes": "fes", "fès": "fes", "fez": "fes",
-        "essaouira": "essaouira", "mogador": "essaouira",
-        "chefchaouen": "chefchaouen", "chaouen": "chefchaouen",
-        "tanger": "tanger", "tangier": "tanger",
-        "rabat": "rabat",
-    }
-    return aliases.get(city_lower, city_lower)
 
 
 def analyze_reputation(
@@ -38,245 +13,190 @@ def analyze_reputation(
     tripadvisor_reviews: int,
     google_score: float,
     google_reviews: int,
-    response_rate: int,
+    response_rate: float,
     negative_reviews_last_6m: int,
 ) -> dict:
-    """Analyse complète de la réputation en ligne."""
+    """
+    Analyze online reputation — score out of 100.
 
-    criteria: list[ReputationCriterion] = []
-    strengths: list[str] = []
-    weaknesses: list[str] = []
-    recommendations: list[ReputationRecommendation] = []
+    Scoring (100 pts):
+      - Note moyenne pondérée (40 pts)
+      - Volume d'avis (25 pts)
+      - Taux de réponse (20 pts)
+      - Tendance avis négatifs (15 pts)
+    """
 
-    # --- Critère 1 : Note Booking (30 pts) ---
-    max_booking = 30
-    if booking_score > 0:
-        if booking_score >= 9.0:
-            score_b = max_booking
-            detail_b = f"Exceptionnel : {booking_score}/10 sur Booking. Vous êtes dans le top 5%."
-            strengths.append(f"Note Booking exceptionnelle ({booking_score}/10)")
-        elif booking_score >= 8.0:
-            score_b = 24
-            detail_b = f"Très bien : {booking_score}/10 sur Booking. Au-dessus de la moyenne."
-            strengths.append(f"Bonne note Booking ({booking_score}/10)")
-        elif booking_score >= 7.0:
-            score_b = 16
-            detail_b = f"Correct : {booking_score}/10 sur Booking. Marge de progression."
-            weaknesses.append(f"Note Booking moyenne ({booking_score}/10)")
-        else:
-            score_b = 8
-            detail_b = f"Faible : {booking_score}/10 sur Booking. Action urgente nécessaire."
-            weaknesses.append(f"Note Booking faible ({booking_score}/10)")
+    # --- 1. Note moyenne pondérée (40 pts) ---
+    booking_norm = booking_score
+    ta_norm = (tripadvisor_score / 5) * 10 if tripadvisor_score > 0 else 0
+    google_norm = (google_score / 5) * 10 if google_score > 0 else 0
+
+    total_weight = 0
+    weighted_sum = 0
+    platforms_active = 0
+
+    if booking_reviews > 0 and booking_score > 0:
+        weighted_sum += booking_norm * 0.45
+        total_weight += 0.45
+        platforms_active += 1
+    if tripadvisor_reviews > 0 and tripadvisor_score > 0:
+        weighted_sum += ta_norm * 0.30
+        total_weight += 0.30
+        platforms_active += 1
+    if google_reviews > 0 and google_score > 0:
+        weighted_sum += google_norm * 0.25
+        total_weight += 0.25
+        platforms_active += 1
+
+    avg_rating = weighted_sum / total_weight if total_weight > 0 else 0
+
+    # Pénalité si peu de plateformes actives
+    platform_penalty = max(0, (3 - platforms_active) * 3)
+
+    if avg_rating >= 8.5:
+        rating_score = 40 - platform_penalty
+        rating_verdict = "Excellente réputation en ligne."
+    elif avg_rating >= 7.5:
+        rating_score = 32 - platform_penalty
+        rating_verdict = "Bonne réputation, quelques axes d'amélioration."
+    elif avg_rating >= 6.5:
+        rating_score = 22 - platform_penalty
+        rating_verdict = "Réputation moyenne. Des efforts sont nécessaires."
+    elif avg_rating >= 5.0:
+        rating_score = 12
+        rating_verdict = "Réputation faible. Action urgente requise."
+    elif avg_rating > 0:
+        rating_score = 5
+        rating_verdict = "Réputation critique. Priorité absolue."
     else:
-        score_b = 0
-        detail_b = "Aucune note Booking renseignée."
-        weaknesses.append("Pas de présence Booking ou note non renseignée")
-    criteria.append(ReputationCriterion(name="Note Booking", score=score_b, max_score=max_booking, detail=detail_b))
+        rating_score = 0
+        rating_verdict = "Aucune donnée de notation disponible."
 
-    # --- Critère 2 : Note TripAdvisor (25 pts) ---
-    max_ta = 25
-    if tripadvisor_score > 0:
-        ta_normalized = (tripadvisor_score / 5.0) * 10
-        if ta_normalized >= 9.0:
-            score_ta = max_ta
-            detail_ta = f"Excellent : {tripadvisor_score}/5 sur TripAdvisor."
-            strengths.append(f"Excellente note TripAdvisor ({tripadvisor_score}/5)")
-        elif ta_normalized >= 8.0:
-            score_ta = 20
-            detail_ta = f"Très bien : {tripadvisor_score}/5 sur TripAdvisor."
-            strengths.append(f"Bonne note TripAdvisor ({tripadvisor_score}/5)")
-        elif ta_normalized >= 7.0:
-            score_ta = 14
-            detail_ta = f"Correct : {tripadvisor_score}/5 sur TripAdvisor."
-            weaknesses.append(f"Note TripAdvisor moyenne ({tripadvisor_score}/5)")
-        else:
-            score_ta = 7
-            detail_ta = f"Faible : {tripadvisor_score}/5 sur TripAdvisor."
-            weaknesses.append(f"Note TripAdvisor faible ({tripadvisor_score}/5)")
-    else:
-        score_ta = 0
-        detail_ta = "Aucune note TripAdvisor renseignée."
-        weaknesses.append("Pas de présence TripAdvisor ou note non renseignée")
-    criteria.append(ReputationCriterion(name="Note TripAdvisor", score=score_ta, max_score=max_ta, detail=detail_ta))
+    rating_score = max(rating_score, 0)
 
-    # --- Critère 3 : Note Google (15 pts) ---
-    max_google = 15
-    if google_score > 0:
-        g_normalized = (google_score / 5.0) * 10
-        if g_normalized >= 8.5:
-            score_g = max_google
-            detail_g = f"Excellent : {google_score}/5 sur Google Maps."
-            strengths.append(f"Excellente note Google ({google_score}/5)")
-        elif g_normalized >= 7.5:
-            score_g = 12
-            detail_g = f"Bon : {google_score}/5 sur Google Maps."
-        else:
-            score_g = 7
-            detail_g = f"Moyen : {google_score}/5 sur Google Maps."
-            weaknesses.append(f"Note Google faible ({google_score}/5)")
-    else:
-        score_g = 0
-        detail_g = "Aucune note Google renseignée."
-        weaknesses.append("Pas de fiche Google Maps ou note non renseignée")
-    criteria.append(ReputationCriterion(name="Note Google Maps", score=score_g, max_score=max_google, detail=detail_g))
-
-    # --- Critère 4 : Volume d'avis (15 pts) ---
-    max_vol = 15
+    # --- 2. Volume d'avis (25 pts) ---
     total_reviews = booking_reviews + tripadvisor_reviews + google_reviews
+
     if total_reviews >= 200:
-        score_vol = max_vol
-        detail_vol = f"Excellent volume : {total_reviews} avis au total. Preuve sociale forte."
-        strengths.append(f"Volume d'avis important ({total_reviews})")
+        vol_score = 25
+        vol_verdict = "Volume d'avis excellent. Votre établissement inspire confiance."
     elif total_reviews >= 100:
-        score_vol = 12
-        detail_vol = f"Bon volume : {total_reviews} avis. Continuez à encourager les avis."
-    elif total_reviews >= 30:
-        score_vol = 8
-        detail_vol = f"Volume moyen : {total_reviews} avis. Il faut en générer plus."
-        weaknesses.append(f"Volume d'avis insuffisant ({total_reviews})")
+        vol_score = 20
+        vol_verdict = "Bon volume d'avis. Continuez à encourager les retours."
+    elif total_reviews >= 50:
+        vol_score = 14
+        vol_verdict = "Volume d'avis moyen. Les voyageurs comparent : plus d'avis = plus de réservations."
+    elif total_reviews >= 20:
+        vol_score = 8
+        vol_verdict = "Volume d'avis faible. Un voyageur sur 3 ne réserve pas un établissement avec moins de 20 avis."
     else:
-        score_vol = 3
-        detail_vol = f"Volume faible : {total_reviews} avis. Les clients ne vous trouvent pas."
-        weaknesses.append(f"Très peu d'avis ({total_reviews})")
-    criteria.append(ReputationCriterion(name="Volume d'avis", score=score_vol, max_score=max_vol, detail=detail_vol))
+        vol_score = 3
+        vol_verdict = "Très peu d'avis. Les clients potentiels hésitent à réserver chez vous."
 
-    # --- Critère 5 : Taux de réponse + avis négatifs (15 pts) ---
-    max_resp = 15
-    score_resp = 0
-    if response_rate >= 90 and negative_reviews_last_6m <= 2:
-        score_resp = max_resp
-        detail_resp = f"Excellent : {response_rate}% de réponses, seulement {negative_reviews_last_6m} avis négatif(s) récent(s)."
-        strengths.append(f"Taux de réponse élevé ({response_rate}%)")
+    # --- 3. Taux de réponse (20 pts) ---
+    if response_rate >= 90:
+        resp_score = 20
+        resp_verdict = "Excellent taux de réponse. Booking favorise les établissements réactifs."
     elif response_rate >= 70:
-        score_resp = 11
-        detail_resp = f"Bon : {response_rate}% de réponses, {negative_reviews_last_6m} avis négatif(s) récent(s)."
-    elif response_rate >= 40:
-        score_resp = 7
-        detail_resp = f"Moyen : {response_rate}% de réponses. Beaucoup d'avis sans réponse."
-        weaknesses.append(f"Taux de réponse faible ({response_rate}%)")
+        resp_score = 15
+        resp_verdict = "Bon taux de réponse, mais certains avis restent sans réponse."
+    elif response_rate >= 50:
+        resp_score = 10
+        resp_verdict = "Taux de réponse insuffisant. Chaque avis non-répondu fait baisser votre visibilité."
     else:
-        score_resp = 3
-        detail_resp = f"Critique : {response_rate}% de réponses. Vous ignorez vos clients."
-        weaknesses.append(f"Taux de réponse très faible ({response_rate}%)")
+        resp_score = 4
+        resp_verdict = "Taux de réponse très faible. L'algorithme Booking vous pénalise directement."
 
-    if negative_reviews_last_6m > 5:
-        weaknesses.append(f"Beaucoup d'avis négatifs récents ({negative_reviews_last_6m})")
-        score_resp = max(0, score_resp - 3)
-
-    criteria.append(ReputationCriterion(name="Gestion des avis", score=score_resp, max_score=max_resp, detail=detail_resp))
-
-    # --- Score total ---
-    total_score = sum(c.score for c in criteria)
-    max_total = sum(c.max_score for c in criteria)
-    pct = (total_score / max_total * 100) if max_total > 0 else 0
-
-    if pct >= 85:
-        grade = "A"
-    elif pct >= 70:
-        grade = "B"
-    elif pct >= 55:
-        grade = "C"
-    elif pct >= 35:
-        grade = "D"
+    # --- 4. Avis négatifs (15 pts) ---
+    if total_reviews > 0:
+        neg_ratio = negative_reviews_last_6m / max(total_reviews, 1) * 100
     else:
-        grade = "F"
+        neg_ratio = 0
 
-    # --- Benchmark ---
-    city_key = normalize_city(city)
-    benchmark_avg = CITY_BENCHMARKS.get(city_key, 8.0)
+    if negative_reviews_last_6m == 0:
+        neg_score = 15
+        neg_verdict = "Aucun avis négatif récent. Excellent."
+    elif negative_reviews_last_6m <= 2:
+        neg_score = 12
+        neg_verdict = "Peu d'avis négatifs récents. Surveillez les tendances."
+    elif negative_reviews_last_6m <= 5:
+        neg_score = 8
+        neg_verdict = f"{negative_reviews_last_6m} avis négatifs en 6 mois. Identifiez les causes récurrentes."
+    elif negative_reviews_last_6m <= 10:
+        neg_score = 4
+        neg_verdict = f"{negative_reviews_last_6m} avis négatifs en 6 mois. C'est un signal d'alarme."
+    else:
+        neg_score = 1
+        neg_verdict = f"{negative_reviews_last_6m} avis négatifs en 6 mois. Situation critique."
 
-    # Moyenne pondérée des notes plateformes (sur 10)
-    platform_scores = []
-    if booking_score > 0:
-        platform_scores.append(booking_score)
-    if tripadvisor_score > 0:
-        platform_scores.append((tripadvisor_score / 5.0) * 10)
-    if google_score > 0:
-        platform_scores.append((google_score / 5.0) * 10)
+    total = rating_score + vol_score + resp_score + neg_score
 
-    avg_platform = round(sum(platform_scores) / len(platform_scores), 1) if platform_scores else 0.0
+    # --- Recommandations contextuelles ---
+    recommendations = []
 
-    # --- Recommandations ---
+    # Ne suggérer TripAdvisor que si VRAIMENT pas de présence
+    if tripadvisor_reviews == 0 and tripadvisor_score == 0:
+        recommendations.append({
+            "action": "Créez votre fiche TripAdvisor — 30% des voyageurs l'utilisent pour comparer.",
+            "gain_mad": 25000,
+            "difficulty": "facile",
+        })
+    elif tripadvisor_reviews > 0 and tripadvisor_score < 4.0:
+        recommendations.append({
+            "action": f"Votre note TripAdvisor ({tripadvisor_score}/5) est en dessous de la moyenne. Analysez les 5 derniers avis négatifs.",
+            "gain_mad": 20000,
+            "difficulty": "moyenne",
+        })
+
     if response_rate < 70:
-        recommendations.append(ReputationRecommendation(
-            title="Répondez à TOUS les avis dans les 24h",
-            detail=f"Votre taux de réponse est de {response_rate}%. Les clients lisent vos réponses. "
-                   "Un avis négatif bien répondu peut convaincre un futur client.",
-            priority="urgente",
-            impact_points=8,
-        ))
+        unresponded = round(total_reviews * (1 - response_rate / 100))
+        recommendations.append({
+            "action": f"Vous avez ~{unresponded} avis sans réponse. Répondez à tous dans les 24h, surtout les négatifs.",
+            "gain_mad": round(unresponded * 1500),
+            "difficulty": "facile",
+        })
 
-    if total_reviews < 50:
-        recommendations.append(ReputationRecommendation(
-            title="Mettez en place un système de collecte d'avis",
-            detail="Envoyez un WhatsApp/Email 24h après le départ : "
-                   "'Comment était votre séjour ? Un avis sur Booking nous aiderait beaucoup.' "
-                   "Objectif : +5 avis par mois.",
-            priority="haute",
-            impact_points=6,
-        ))
+    if total_reviews < 50 and total_reviews > 0:
+        recommendations.append({
+            "action": "Envoyez un message WhatsApp post-séjour avec un lien direct vers votre page Booking pour encourager les avis.",
+            "gain_mad": 15000,
+            "difficulty": "facile",
+        })
 
     if negative_reviews_last_6m > 3:
-        recommendations.append(ReputationRecommendation(
-            title="Analysez les avis négatifs pour trouver le vrai problème",
-            detail=f"Vous avez {negative_reviews_last_6m} avis négatifs en 6 mois. "
-                   "Cherchez le mot qui revient le plus (bruit, propreté, accueil, petit-déjeuner). "
-                   "Corrigez la cause racine, pas le symptôme.",
-            priority="urgente",
-            impact_points=10,
-        ))
+        recommendations.append({
+            "action": f"Analysez vos {negative_reviews_last_6m} avis négatifs récents : identifiez les 2-3 problèmes récurrents (propreté, bruit, accueil) et corrigez-les.",
+            "gain_mad": 30000,
+            "difficulty": "moyenne",
+        })
 
-    if booking_score > 0 and booking_score < 8.0:
-        recommendations.append(ReputationRecommendation(
-            title="Améliorez l'expérience d'arrivée",
-            detail="Le premier quart d'heure détermine la note. "
-                   "Accueil avec thé à la menthe, explication du riad, petit geste de bienvenue. "
-                   "Coût : 10 MAD. Impact sur la note : +0.3 à +0.5.",
-            priority="haute",
-            impact_points=5,
-        ))
+    if platforms_active < 2 and total_reviews > 0:
+        recommendations.append({
+            "action": "Vous n'êtes présent que sur 1 plateforme. Inscrivez-vous sur au moins 2 autres (Booking, TripAdvisor, Google).",
+            "gain_mad": 20000,
+            "difficulty": "facile",
+        })
 
-    if tripadvisor_score == 0:
-        recommendations.append(ReputationRecommendation(
-            title="Créez votre fiche TripAdvisor",
-            detail="TripAdvisor est la 2ème source de réservations après Booking. "
-                   "Inscrivez-vous gratuitement sur tripadvisor.com/Owners. "
-                   "Ajoutez 20+ photos professionnelles.",
-            priority="haute",
-            impact_points=7,
-        ))
-
-    if google_score == 0:
-        recommendations.append(ReputationRecommendation(
-            title="Revendiquez votre fiche Google Business",
-            detail="La fiche Google Maps apparaît en premier dans les recherches. "
-                   "Revendiquez-la sur business.google.com. "
-                   "Ajoutez horaires, photos, et répondez aux avis.",
-            priority="haute",
-            impact_points=6,
-        ))
-
-    if not recommendations:
-        recommendations.append(ReputationRecommendation(
-            title="Maintenez votre excellence",
-            detail="Votre réputation est excellente. Continuez à répondre aux avis, "
-                   "à collecter des retours, et à surprendre vos clients.",
-            priority="basse",
-            impact_points=2,
-        ))
+    if avg_rating < 7.5 and avg_rating > 0:
+        recommendations.append({
+            "action": "Priorité : améliorez l'expérience client (accueil, propreté, petit-déjeuner) pour remonter la note moyenne au-dessus de 8.0.",
+            "gain_mad": 40000,
+            "difficulty": "moyenne",
+        })
 
     return {
-        "riad_name": riad_name,
-        "city": city,
-        "total_score": total_score,
-        "max_total": max_total,
-        "grade": grade,
-        "total_reviews": total_reviews,
-        "avg_platform_score": avg_platform,
-        "benchmark_avg": benchmark_avg,
-        "benchmark_source": "Agrégation Booking/TripAdvisor/Google 2023-2024",
-        "criteria": [c.model_dump() for c in criteria],
-        "strengths": strengths,
-        "weaknesses": weaknesses,
-        "recommendations": [r.model_dump() for r in recommendations],
+        "score": total,
+        "max": 100,
+        "details": {
+            "average_rating": {"score": rating_score, "max": 40, "verdict": rating_verdict, "avg_normalized": round(avg_rating, 1)},
+            "review_volume": {"score": vol_score, "max": 25, "verdict": vol_verdict, "total_reviews": total_reviews},
+            "response_rate": {"score": resp_score, "max": 20, "verdict": resp_verdict},
+            "negative_trend": {"score": neg_score, "max": 15, "verdict": neg_verdict},
+        },
+        "platforms": {
+            "booking": {"score": booking_score, "reviews": booking_reviews},
+            "tripadvisor": {"score": tripadvisor_score, "reviews": tripadvisor_reviews},
+            "google": {"score": google_score, "reviews": google_reviews},
+        },
+        "recommendations": recommendations,
     }

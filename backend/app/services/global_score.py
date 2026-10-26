@@ -1,233 +1,211 @@
-from app.schemas.score import (
-    GlobalAuditRequest,
-    GlobalAuditResponse,
-    SubScore,
-    Priority,
-)
+"""
+Global score calculation for RiadPulse.
+Orchestrates all audit modules and produces a weighted score.
+"""
+from app.services.audit_service import audit_site_web
+from app.services.pricing_service import analyze_pricing
+from app.services.reputation_service import analyze_reputation
+from app.services.commissions_service import analyze_commissions
 
-MAD_TO_EUR = 0.092
 
 WEIGHTS = {
-    "site_web": 0.25,
     "reputation": 0.35,
+    "site_web": 0.25,
     "pricing": 0.20,
     "commissions": 0.20,
 }
 
 
-def _grade(score: float) -> str:
-    if score >= 85:
+def _grade(score: float, max_score: float = 100) -> str:
+    pct = (score / max_score) * 100 if max_score > 0 else 0
+    if pct >= 85:
         return "A"
-    elif score >= 70:
+    elif pct >= 70:
         return "B"
-    elif score >= 55:
+    elif pct >= 55:
         return "C"
-    elif score >= 40:
+    elif pct >= 40:
         return "D"
     else:
         return "F"
 
 
-def _city_position(score: float) -> str:
-    if score >= 75:
-        return "Vous etes dans le premier tiers des etablissements de votre ville."
-    elif score >= 50:
-        return "Vous etes dans le deuxieme tiers des etablissements de votre ville."
-    else:
-        return "Vous etes dans le dernier tiers des etablissements de votre ville. Il y a un gros potentiel de progression."
+async def calculate_global_score(req) -> dict:
+    """
+    Calculate the global RiadPulse score.
+    Runs all available modules and normalizes weights.
+    """
+    modules = {}
+    active_weights = {}
+    recommendations = []
+    priorities = []
 
-
-async def calculate_global_score(req: GlobalAuditRequest) -> GlobalAuditResponse:
-    sub_scores: dict[str, SubScore] = {}
-    all_priorities: list[Priority] = []
-    total_loss_mad = 0.0
-    modules_results: dict = {}
-
-    # ===== 1. SITE WEB =====
-    if req.url and req.url.strip():
+    # --- Site Web ---
+    if req.url:
         try:
-            from app.services.audit_service import audit_site_web
             sw = await audit_site_web(req.url)
-            score = sw.get("total_score", 0)
-            max_s = sw.get("max_total", 100)
-            normalized = (score / max_s * 100) if max_s > 0 else 0
-            sub_scores["site_web"] = SubScore(
-                score=round(normalized, 1),
-                max_score=100,
-                grade=sw.get("grade", "F"),
-                weight=WEIGHTS["site_web"],
-                weighted_score=round(normalized * WEIGHTS["site_web"], 1),
-            )
-            modules_results["site_web"] = sw
+            modules["site_web"] = {
+                "score": sw["score"],
+                "max": sw["max"],
+                "details": sw.get("details", {}),
+            }
+            active_weights["site_web"] = WEIGHTS["site_web"]
+            for r in sw.get("recommendations", []):
+                recommendations.append({"module": "Site Web", "action": r})
+                priorities.append({
+                    "module": "Site Web",
+                    "action": r,
+                    "gain_mad": 20000,
+                    "difficulty": "moyenne",
+                })
         except Exception as e:
-            sub_scores["site_web"] = SubScore(
-                score=0, max_score=100, grade="F",
-                weight=WEIGHTS["site_web"], weighted_score=0,
-            )
-            modules_results["site_web"] = {"error": str(e)}
+            modules["site_web"] = {"score": 0, "max": 100, "error": str(e)}
 
-    # ===== 2. PRICING =====
-    if req.current_price_mad > 0 and req.num_rooms > 0:
-        try:
-            from app.services.pricing_service import analyze_pricing
-            pr = analyze_pricing(
-                req.riad_name,
-                req.city,
-                req.current_price_mad,
-                req.stars,
-                req.num_rooms,
-                req.occupancy_rate,
-            )
-            loss = pr.get("annual_loss_mad", 0)
-            total_loss_mad += loss
-            pricing_score = max(0, min(100, 100 - (loss / 10000)))
-            sub_scores["pricing"] = SubScore(
-                score=round(pricing_score, 1),
-                max_score=100,
-                grade=_grade(pricing_score),
-                weight=WEIGHTS["pricing"],
-                weighted_score=round(pricing_score * WEIGHTS["pricing"], 1),
-            )
-            modules_results["pricing"] = pr
-            for rec in pr.get("recommendations", []):
-                all_priorities.append(Priority(
-                    rank=0,
-                    module="Pricing",
-                    title=rec.get("title", ""),
-                    detail=rec.get("detail", ""),
-                    impact_mad=rec.get("impact_mad", 0),
-                    difficulty=rec.get("difficulty", "moyenne"),
-                ))
-        except Exception as e:
-            sub_scores["pricing"] = SubScore(
-                score=0, max_score=100, grade="F",
-                weight=WEIGHTS["pricing"], weighted_score=0,
-            )
-            modules_results["pricing"] = {"error": str(e)}
-
-    # ===== 3. REPUTATION =====
-    has_reputation = (
-        req.booking_score > 0
-        or req.tripadvisor_score > 0
-        or req.google_score > 0
-    )
-    if has_reputation:
-        try:
-            from app.services.reputation_service import analyze_reputation
-            rep = analyze_reputation(
-                req.riad_name,
-                req.city,
-                req.booking_score,
-                req.booking_reviews,
-                req.tripadvisor_score,
-                req.tripadvisor_reviews,
-                req.google_score,
-                req.google_reviews,
-                req.response_rate_percent,
-                0,
-            )
-            score = rep.get("total_score", 0)
-            max_s = rep.get("max_total", 100)
-            normalized = (score / max_s * 100) if max_s > 0 else 0
-            sub_scores["reputation"] = SubScore(
-                score=round(normalized, 1),
-                max_score=100,
-                grade=rep.get("grade", "F"),
-                weight=WEIGHTS["reputation"],
-                weighted_score=round(normalized * WEIGHTS["reputation"], 1),
-            )
-            modules_results["reputation"] = rep
-            for rec in rep.get("recommendations", []):
-                all_priorities.append(Priority(
-                    rank=0,
-                    module="Reputation",
-                    title=rec.get("title", ""),
-                    detail=rec.get("detail", ""),
-                    impact_mad=rec.get("impact_points", 0) * 5000,
-                    difficulty=rec.get("difficulty", "moyenne"),
-                ))
-        except Exception as e:
-            sub_scores["reputation"] = SubScore(
-                score=0, max_score=100, grade="F",
-                weight=WEIGHTS["reputation"], weighted_score=0,
-            )
-            modules_results["reputation"] = {"error": str(e)}
-
-    # ===== 4. COMMISSIONS =====
-    has_ota = (
-        req.booking_percent > 0
-        or req.airbnb_percent > 0
-        or req.expedia_percent > 0
-    )
-    if has_ota and req.annual_revenue_mad > 0:
-        try:
-            from app.services.commissions_service import analyze_commissions
-            com = analyze_commissions(
-                req.riad_name,
-                req.city,
-                req.annual_revenue_mad,
-                req.booking_percent,
-                req.airbnb_percent,
-                req.expedia_percent,
-                req.direct_percent,
-                req.current_price_mad,
-                req.num_rooms,
-            )
-            saving = com.get("potential_saving_mad", 0)
-            total_loss_mad += saving
-            com_pct = com.get("commission_percent", 0)
-            com_score = max(0, min(100, 100 - (com_pct * 4)))
-            sub_scores["commissions"] = SubScore(
-                score=round(com_score, 1),
-                max_score=100,
-                grade=_grade(com_score),
-                weight=WEIGHTS["commissions"],
-                weighted_score=round(com_score * WEIGHTS["commissions"], 1),
-            )
-            modules_results["commissions"] = com
-            for rec in com.get("recommendations", []):
-                all_priorities.append(Priority(
-                    rank=0,
-                    module="Commissions",
-                    title=rec.get("title", ""),
-                    detail=rec.get("detail", ""),
-                    impact_mad=rec.get("saving_mad", 0),
-                    difficulty=rec.get("difficulty", "moyenne"),
-                ))
-        except Exception as e:
-            sub_scores["commissions"] = SubScore(
-                score=0, max_score=100, grade="F",
-                weight=WEIGHTS["commissions"], weighted_score=0,
-            )
-            modules_results["commissions"] = {"error": str(e)}
-
-    # ===== SCORE GLOBAL =====
-    active_weights = sum(WEIGHTS[k] for k in sub_scores.keys())
-    if active_weights > 0:
-        global_score = sum(
-            s.score * (WEIGHTS[k] / active_weights)
-            for k, s in sub_scores.items()
+    # --- Pricing ---
+    # Le schema utilise current_price_mad (pas my_price)
+    price = getattr(req, "current_price_mad", None) or getattr(req, "my_price", None)
+    if price and req.stars and req.num_rooms:
+        pr = analyze_pricing(
+            riad_name=req.riad_name,
+            city=req.city,
+            my_price=price,
+            stars=req.stars,
+            num_rooms=req.num_rooms,
+            occupancy_rate=req.occupancy_rate or 60,
         )
-    else:
-        global_score = 0
+        modules["pricing"] = {
+            "score": pr["score"],
+            "max": pr["max"],
+            "details": pr.get("details", {}),
+        }
+        active_weights["pricing"] = WEIGHTS["pricing"]
+        for r in pr.get("recommendations", []):
+            if isinstance(r, dict):
+                recommendations.append({"module": "Pricing", "action": r.get("action", str(r))})
+                priorities.append({
+                    "module": "Pricing",
+                    "action": r.get("action", str(r)),
+                    "gain_mad": r.get("gain_mad", 0),
+                    "difficulty": r.get("difficulty", "moyenne"),
+                })
+            else:
+                recommendations.append({"module": "Pricing", "action": r})
+                priorities.append({
+                    "module": "Pricing",
+                    "action": r,
+                    "gain_mad": pr.get("revenue", {}).get("gap", 0),
+                    "difficulty": "moyenne",
+                })
 
-    global_score = round(min(100, max(0, global_score)), 1)
+    # --- Reputation ---
+    # Le schema utilise response_rate_percent (pas response_rate)
+    resp_rate = getattr(req, "response_rate_percent", None) or getattr(req, "response_rate", None) or 0
+    if req.booking_score or req.tripadvisor_score or req.google_score:
+        rep = analyze_reputation(
+            riad_name=req.riad_name,
+            city=req.city,
+            booking_score=req.booking_score or 0,
+            booking_reviews=req.booking_reviews or 0,
+            tripadvisor_score=req.tripadvisor_score or 0,
+            tripadvisor_reviews=req.tripadvisor_reviews or 0,
+            google_score=req.google_score or 0,
+            google_reviews=req.google_reviews or 0,
+            response_rate=resp_rate,
+            negative_reviews_last_6m=req.negative_reviews_last_6m or 0,
+        )
+        modules["reputation"] = {
+            "score": rep["score"],
+            "max": rep["max"],
+            "details": rep.get("details", {}),
+        }
+        active_weights["reputation"] = WEIGHTS["reputation"]
+        for r in rep.get("recommendations", []):
+            if isinstance(r, dict):
+                recommendations.append({"module": "Réputation", "action": r.get("action", str(r))})
+                priorities.append({
+                    "module": "Réputation",
+                    "action": r.get("action", str(r)),
+                    "gain_mad": r.get("gain_mad", 0),
+                    "difficulty": r.get("difficulty", "moyenne"),
+                })
+            else:
+                recommendations.append({"module": "Réputation", "action": r})
+                priorities.append({
+                    "module": "Réputation",
+                    "action": r,
+                    "gain_mad": 20000,
+                    "difficulty": "moyenne",
+                })
 
-    # ===== PRIORITES =====
-    all_priorities.sort(key=lambda p: p.impact_mad, reverse=True)
-    for i, p in enumerate(all_priorities[:5]):
-        p.rank = i + 1
-    top_priorities = all_priorities[:5]
+    # --- Commissions ---
+    if req.annual_revenue_mad and req.booking_percent is not None:
+        com = analyze_commissions(
+            riad_name=req.riad_name,
+            city=req.city,
+            annual_revenue_mad=req.annual_revenue_mad,
+            booking_percent=req.booking_percent or 0,
+            airbnb_percent=req.airbnb_percent or 0,
+            expedia_percent=req.expedia_percent or 0,
+            direct_percent=req.direct_percent or 0,
+            avg_night_price_mad=req.avg_night_price_mad or price or 500,
+            num_rooms=req.num_rooms or 5,
+        )
+        modules["commissions"] = {
+            "score": com["score"],
+            "max": com["max"],
+            "details": com.get("details", {}),
+        }
+        active_weights["commissions"] = WEIGHTS["commissions"]
+        for r in com.get("recommendations", []):
+            if isinstance(r, dict):
+                recommendations.append({"module": "Commissions", "action": r.get("action", str(r))})
+                priorities.append({
+                    "module": "Commissions",
+                    "action": r.get("action", str(r)),
+                    "gain_mad": r.get("gain_mad", 0),
+                    "difficulty": r.get("difficulty", "moyenne"),
+                })
+            else:
+                recommendations.append({"module": "Commissions", "action": r})
+                savings = com.get("details", {}).get("optimization", {}).get("savings_potential", 0)
+                priorities.append({
+                    "module": "Commissions",
+                    "action": r,
+                    "gain_mad": round(savings / max(len(com.get("recommendations", [])), 1)),
+                    "difficulty": "moyenne",
+                })
 
-    return GlobalAuditResponse(
-        riad_name=req.riad_name,
-        city=req.city,
-        global_score=global_score,
-        grade=_grade(global_score),
-        total_annual_loss_mad=round(total_loss_mad, 0),
-        total_annual_loss_eur=round(total_loss_mad * MAD_TO_EUR, 0),
-        sub_scores=sub_scores,
-        top_priorities=top_priorities,
-        city_position=_city_position(global_score),
-        modules=modules_results,
-    )
+    # --- Normalize weights ---
+    total_weight = sum(active_weights.values())
+    if total_weight == 0:
+        return {
+            "global_score": 0,
+            "max_total": 100,
+            "grade": "F",
+            "modules": modules,
+            "recommendations": [],
+            "priorities": [],
+            "error": "Aucune donnée fournie pour le calcul.",
+        }
+
+    weighted_score = 0
+    for mod_name, weight in active_weights.items():
+        mod = modules[mod_name]
+        normalized_weight = weight / total_weight
+        mod_pct = mod["score"] / mod["max"] if mod["max"] > 0 else 0
+        weighted_score += mod_pct * normalized_weight * 100
+
+    # Sort priorities by gain (highest first)
+    priorities.sort(key=lambda x: x.get("gain_mad", 0), reverse=True)
+
+    total_loss = sum(p.get("gain_mad", 0) for p in priorities[:5])
+
+    return {
+        "global_score": round(weighted_score, 1),
+        "max_total": 100,
+        "grade": _grade(weighted_score),
+        "modules": modules,
+        "recommendations": [r["action"] if isinstance(r, dict) else r for r in recommendations],
+        "priorities": priorities[:5],
+        "total_estimated_loss_mad": total_loss,
+    }

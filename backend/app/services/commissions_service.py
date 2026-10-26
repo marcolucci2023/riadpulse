@@ -1,152 +1,175 @@
 """
-Service d'estimation des pertes en commissions pour RiadPulse.
-Calcule le coût réel des OTA et le potentiel d'économie en réservation directe.
+Commissions analysis service for RiadPulse.
+Calculates OTA commission costs and direct booking potential.
 """
-from app.schemas.commissions import PlatformCost, CommissionRecommendation
 
-MAD_TO_EUR = 0.092
-
-# Taux de commission moyens par plateforme (2024)
-COMMISSION_RATES = {
-    "Booking.com": {"rate": 18, "color": "#003580"},
-    "Airbnb": {"rate": 15, "color": "#FF5A5F"},
-    "Expedia": {"rate": 20, "color": "#FFC800"},
+OTA_RATES = {
+    "booking": 0.18,
+    "airbnb": 0.15,
+    "expedia": 0.20,
 }
 
 
 def analyze_commissions(
     riad_name: str,
     city: str,
-    annual_revenue_mad: int,
-    booking_percent: int,
-    airbnb_percent: int,
-    expedia_percent: int,
-    direct_percent: int,
-    avg_night_price_mad: int,
+    annual_revenue_mad: float,
+    booking_percent: float,
+    airbnb_percent: float,
+    expedia_percent: float,
+    direct_percent: float,
+    avg_night_price_mad: float,
     num_rooms: int,
 ) -> dict:
     """
-    Analyse complète des commissions payées aux OTA.
+    Analyze OTA commissions — score out of 100.
+
+    Scoring (100 pts):
+      - Ratio réservations directes (40 pts)
+      - Coût des commissions (35 pts)
+      - Potentiel d'optimisation (25 pts)
     """
-    annual_revenue_eur = round(annual_revenue_mad * MAD_TO_EUR)
 
-    # Calcul par plateforme
-    platforms: list[PlatformCost] = []
-    total_commission_mad = 0
+    total_pct = booking_percent + airbnb_percent + expedia_percent + direct_percent
+    if total_pct > 0:
+        b_pct = booking_percent / total_pct
+        a_pct = airbnb_percent / total_pct
+        e_pct = expedia_percent / total_pct
+        d_pct = direct_percent / total_pct
+    else:
+        b_pct = a_pct = e_pct = 0
+        d_pct = 1.0
 
-    platform_data = [
-        ("Booking.com", booking_percent),
-        ("Airbnb", airbnb_percent),
-        ("Expedia", expedia_percent),
+    rev_booking = annual_revenue_mad * b_pct
+    rev_airbnb = annual_revenue_mad * a_pct
+    rev_expedia = annual_revenue_mad * e_pct
+    rev_direct = annual_revenue_mad * d_pct
+
+    cost_booking = rev_booking * OTA_RATES["booking"]
+    cost_airbnb = rev_airbnb * OTA_RATES["airbnb"]
+    cost_expedia = rev_expedia * OTA_RATES["expedia"]
+    total_commission = cost_booking + cost_airbnb + cost_expedia
+
+    # --- 1. Ratio direct (40 pts) ---
+    direct_ratio = d_pct * 100
+    if direct_ratio >= 50:
+        direct_score = 40
+        direct_verdict = "Excellent : plus de la moitié de vos réservations sont directes (0% de commission)."
+    elif direct_ratio >= 35:
+        direct_score = 30
+        direct_verdict = f"Bon ratio direct ({round(direct_ratio)}%). Vous économisez déjà des commissions."
+    elif direct_ratio >= 20:
+        direct_score = 20
+        direct_verdict = f"Ratio direct moyen ({round(direct_ratio)}%). Chaque point gagné en direct = ~{round(annual_revenue_mad * 0.01 * 0.18)} MAD économisés."
+    elif direct_ratio >= 10:
+        direct_score = 12
+        direct_verdict = f"Faible ratio direct ({round(direct_ratio)}%). Vous reversez une part importante de votre CA aux OTA."
+    else:
+        direct_score = 5
+        direct_verdict = f"Quasi-dépendance totale aux OTA ({round(direct_ratio)}% direct). Vous perdez {round(total_commission)} MAD/an en commissions."
+
+    # --- 2. Coût des commissions (35 pts) ---
+    commission_ratio = (total_commission / annual_revenue_mad * 100) if annual_revenue_mad > 0 else 0
+
+    if commission_ratio <= 5:
+        eff_score = 35
+        eff_verdict = "Coût de commissions très faible. Votre modèle est sain."
+    elif commission_ratio <= 8:
+        eff_score = 28
+        eff_verdict = "Coût de commissions maîtrisé."
+    elif commission_ratio <= 12:
+        eff_score = 20
+        eff_verdict = f"Coût de commissions notable ({round(commission_ratio, 1)}% du CA). Optimisable."
+    elif commission_ratio <= 16:
+        eff_score = 12
+        eff_verdict = f"Coût de commissions élevé ({round(commission_ratio, 1)}% du CA). Vous travaillez beaucoup pour les OTA."
+    else:
+        eff_score = 5
+        eff_verdict = f"Coût de commissions très élevé ({round(commission_ratio, 1)}% du CA). C'est insoutenable."
+
+    # --- 3. Potentiel d'optimisation (25 pts) ---
+    # Si 15% des réservations OTA basculent en direct
+    shift_pct = 0.15
+    ota_revenue = rev_booking + rev_airbnb + rev_expedia
+    shifted_revenue = ota_revenue * shift_pct
+    shift_savings = shifted_revenue * ((
+        b_pct * OTA_RATES["booking"] +
+        a_pct * OTA_RATES["airbnb"] +
+        e_pct * OTA_RATES["expedia"]
+    ) / max(b_pct + a_pct + e_pct, 0.01))
+
+    if shift_savings / annual_revenue_mad < 0.01 if annual_revenue_mad > 0 else True:
+        opt_score = 24
+        opt_verdict = "Peu de marge d'optimisation. Votre distribution est déjà efficace."
+    elif shift_savings / annual_revenue_mad < 0.025 if annual_revenue_mad > 0 else True:
+        opt_score = 16
+        opt_verdict = f"Optimisation possible : entre {round(shift_savings * 0.7)} et {round(shift_savings)} MAD/an en convertissant 15% des OTA en direct."
+    else:
+        opt_score = 8
+        opt_verdict = f"Fort potentiel : entre {round(shift_savings * 0.7)} et {round(shift_savings)} MAD/an économisables en boostant le direct."
+
+    total = direct_score + eff_score + opt_score
+
+    platforms = [
+        {"name": "Booking.com", "percent": round(b_pct * 100, 1), "commission_rate": 18, "cost": round(cost_booking)},
+        {"name": "Airbnb", "percent": round(a_pct * 100, 1), "commission_rate": 15, "cost": round(cost_airbnb)},
+        {"name": "Expedia", "percent": round(e_pct * 100, 1), "commission_rate": 20, "cost": round(cost_expedia)},
+        {"name": "Direct", "percent": round(d_pct * 100, 1), "commission_rate": 0, "cost": 0},
     ]
 
-    for name, pct in platform_data:
-        if pct <= 0:
-            continue
-        revenue = round(annual_revenue_mad * pct / 100)
-        rate = COMMISSION_RATES[name]["rate"]
-        commission = round(revenue * rate / 100)
-        commission_eur = round(commission * MAD_TO_EUR)
-        total_commission_mad += commission
+    # --- Recommandations contextuelles ---
+    recommendations = []
 
-        platforms.append(PlatformCost(
-            name=name,
-            revenue_mad=revenue,
-            commission_rate=rate,
-            commission_mad=commission,
-            commission_eur=commission_eur,
-            color=COMMISSION_RATES[name]["color"],
-        ))
+    if direct_ratio < 25:
+        recommendations.append({
+            "action": "Créez un moteur de réservation sur votre site web (Widget Cloudbeds, LittleHotelier, ou Bookassist).",
+            "gain_mad": round(shift_savings * 0.4),
+            "difficulty": "moyenne",
+        })
 
-    total_commission_eur = round(total_commission_mad * MAD_TO_EUR)
-    commission_percent = round((total_commission_mad / annual_revenue_mad * 100), 1) if annual_revenue_mad > 0 else 0
+    if b_pct > 0.35:
+        recommendations.append({
+            "action": f"Booking représente {round(b_pct * 100)}% de vos revenus. Négociez le programme Preferred Partner (15% au lieu de 18%).",
+            "gain_mad": round(cost_booking * 0.167),
+            "difficulty": "facile",
+        })
 
-    direct_revenue_mad = round(annual_revenue_mad * direct_percent / 100)
+    if commission_ratio > 10:
+        recommendations.append({
+            "action": "Mettez en place un programme de fidélité WhatsApp : offre exclusive -10% pour les retours en direct.",
+            "gain_mad": round(shift_savings * 0.3),
+            "difficulty": "facile",
+        })
 
-    # Potentiel d'économie
-    # Objectif réaliste : passer de direct_percent à direct_percent + 20%
-    # en convertissant des réservations OTA vers le direct
-    potential_direct_percent = min(direct_percent + 20, 60)
-    additional_direct = potential_direct_percent - direct_percent
-    # L'économie = les commissions qu'on ne paiera plus sur ce volume converti
-    # On prend le taux moyen de commission
-    avg_commission_rate = commission_percent if commission_percent > 0 else 17
-    potential_saving_mad = round(annual_revenue_mad * additional_direct / 100 * avg_commission_rate / 100)
-    potential_saving_eur = round(potential_saving_mad * MAD_TO_EUR)
+    if direct_ratio < 15:
+        recommendations.append({
+            "action": "Offrez un avantage exclusif (petit-déjeuner, transfert aéroport) uniquement pour les réservations directes.",
+            "gain_mad": round(shift_savings * 0.25),
+            "difficulty": "facile",
+        })
 
-    # Coût par réservation Booking
-    # Estimation : nombre de réservations = CA / (prix moyen × 2.5 nuits moyennes)
-    avg_stay = 2.5
-    total_bookings = round(annual_revenue_mad / (avg_night_price_mad * avg_stay)) if avg_night_price_mad > 0 else 0
-    booking_bookings = round(total_bookings * booking_percent / 100) if total_bookings > 0 else 0
-    booking_commission = round(annual_revenue_mad * booking_percent / 100 * 0.18)
-    cost_per_booking = round(booking_commission / booking_bookings) if booking_bookings > 0 else 0
-
-    # Recommandations
-    recommendations: list[CommissionRecommendation] = []
-
-    if booking_percent >= 50:
-        recommendations.append(CommissionRecommendation(
-            title="Créez un moteur de réservation sur votre site",
-            detail=f"{booking_percent}% de vos réservations viennent de Booking. "
-                   "Un moteur de réservation (type Cloudbeds, Little Hotelier, ou même un simple "
-                   "formulaire WhatsApp) peut capter 15-25% de ce volume en direct. "
-                   "Coût : 200-500 MAD/mois. Économie : des dizaines de milliers de MAD/an.",
-            saving_mad=round(annual_revenue_mad * 0.10 * 0.18),
-            difficulty="moyenne",
-        ))
-
-    if airbnb_percent >= 10:
-        recommendations.append(CommissionRecommendation(
-            title="Convertir les clients Airbnb en clients directs",
-            detail="Après chaque séjour Airbnb, envoyez un message : "
-                   "'Merci ! Pour votre prochain séjour, réservez en direct sur notre site "
-                   "et bénéficiez de -10%.' Le client économise, vous aussi.",
-            saving_mad=round(annual_revenue_mad * airbnb_percent / 100 * 0.15 * 0.3),
-            difficulty="facile",
-        ))
-
-    recommendations.append(CommissionRecommendation(
-        title="Mettez en place un programme de fidélité WhatsApp",
-        detail="Créez une liste de diffusion WhatsApp avec vos anciens clients. "
-               "Envoyez 2-3 offres par an (basse saison, dernière minute). "
-               "Coût : 0 MAD. Taux de conversion : 5-10%.",
-        saving_mad=round(annual_revenue_mad * 0.05 * avg_commission_rate / 100),
-        difficulty="facile",
-    ))
-
-    if direct_percent < 20:
-        recommendations.append(CommissionRecommendation(
-            title="Optimisez votre fiche Google Business pour le 'réserver en direct'",
-            detail="Ajoutez le bouton 'Réserver' sur votre fiche Google Maps "
-                   "qui pointe vers votre site (pas vers Booking !). "
-                   "Google envoie beaucoup de trafic gratuit aux riads bien référencés.",
-            saving_mad=round(annual_revenue_mad * 0.03 * avg_commission_rate / 100),
-            difficulty="facile",
-        ))
-
-    if not recommendations:
-        recommendations.append(CommissionRecommendation(
-            title="Maintenez votre mix de distribution",
-            detail="Votre répartition est équilibrée. Continuez à investir "
-                   "dans le direct tout en gardant la visibilité OTA.",
-            saving_mad=0,
-            difficulty="facile",
-        ))
+    if e_pct > 0.20:
+        recommendations.append({
+            "action": f"Expedia prend 20% de commission sur {round(e_pct * 100)}% de vos revenus. Envisagez de réduire cette part.",
+            "gain_mad": round(cost_expedia * 0.3),
+            "difficulty": "moyenne",
+        })
 
     return {
-        "riad_name": riad_name,
-        "city": city,
-        "annual_revenue_mad": annual_revenue_mad,
-        "annual_revenue_eur": annual_revenue_eur,
-        "total_commission_mad": total_commission_mad,
-        "total_commission_eur": total_commission_eur,
-        "commission_percent": commission_percent,
-        "platforms": [p.model_dump() for p in platforms],
-        "direct_revenue_mad": direct_revenue_mad,
-        "potential_direct_percent": potential_direct_percent,
-        "potential_saving_mad": potential_saving_mad,
-        "potential_saving_eur": potential_saving_eur,
-        "cost_per_booking_mad": cost_per_booking,
-        "recommendations": [r.model_dump() for r in recommendations],
+        "score": total,
+        "max": 100,
+        "details": {
+            "direct_ratio": {"score": direct_score, "max": 40, "verdict": direct_verdict},
+            "commission_efficiency": {"score": eff_score, "max": 35, "verdict": eff_verdict, "commission_ratio": round(commission_ratio, 1)},
+            "optimization": {"score": opt_score, "max": 25, "verdict": opt_verdict, "savings_potential": round(shift_savings)},
+        },
+        "platforms": platforms,
+        "totals": {
+            "annual_revenue": round(annual_revenue_mad),
+            "total_commission_mad": round(total_commission),
+            "total_commission_eur": round(total_commission / 10.87, 2),
+            "direct_revenue_mad": round(rev_direct),
+            "cost_per_booking_mad": round(total_commission / (num_rooms * 365 * 0.6)) if num_rooms > 0 else 0,
+        },
+        "recommendations": recommendations,
     }
