@@ -1,81 +1,83 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { getToken, getEmail, logout } from "@/lib/api";
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { getToken } from '@/lib/api';
 
-export default function Header() {
-  const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [email, setEmail] = useState("");
+export function Header() {
+  const pathname = usePathname();
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const token = getToken();
-    setIsLoggedIn(!!token);
-    const storedEmail = getEmail();
-    if (storedEmail) setEmail(storedEmail);
+    setLoggedIn(!!getToken());
   }, []);
 
-  function handleLogout() {
-    logout();
-    setIsLoggedIn(false);
-    router.push("/login");
-  }
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setLoggedIn(false);
+    window.location.href = '/login';
+  };
+
+  const navLinks = loggedIn
+    ? [
+        { href: '/dashboard', label: 'Tableau de bord' },
+        { href: '/audit', label: 'Nouvel audit' },
+        { href: '/score', label: 'Score global' },
+      ]
+    : [
+        { href: '/login', label: 'Connexion' },
+        { href: '/register', label: 'Inscription' },
+      ];
+
+  const isActive = (href: string) =>
+    pathname === href ? 'text-[#e76f51]' : 'text-gray-400 hover:text-white';
 
   return (
-    <header className="flex items-center justify-between px-6 md:px-12 py-6">
-      <Link href="/" className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-[#C2452D] rounded-lg flex items-center justify-center font-bold text-xl">
-          R
-        </div>
-        <span className="text-2xl font-bold">
-          Riad<span className="text-[#D4A843]">Pulse</span>
-        </span>
-      </Link>
-
-      <nav className="flex items-center gap-3">
-        {isLoggedIn ? (
-          <>
-            <Link
-              href="/audit"
-              className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10 transition text-sm"
-            >
-              🔍 Audit
+    <header className="border-b border-white/5 bg-[#0a1628]/80 backdrop-blur-xl sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <Link href="/" className="text-xl font-bold tracking-tight">
+          Riad<span className="text-[#e76f51]">Pulse</span>
+        </Link>
+        <nav className="hidden md:flex items-center gap-6 text-sm">
+          {navLinks.map((l) => (
+            <Link key={l.href} href={l.href} className={`${isActive(l.href)} transition-colors`}>
+              {l.label}
             </Link>
-            <Link
-              href="/dashboard"
-              className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10 transition text-sm"
-            >
-              📊 Dashboard
-            </Link>
-            <span className="text-white/40 text-sm hidden md:block">
-              {email}
-            </span>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10 transition text-sm"
-            >
+          ))}
+          {loggedIn && (
+            <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-red-400 transition-colors">
               Déconnexion
             </button>
-          </>
-        ) : (
-          <>
-            <Link
-              href="/login"
-              className="px-4 py-2 rounded-lg border border-white/20 hover:bg-white/10 transition text-sm"
-            >
-              Connexion
+          )}
+        </nav>
+        <button className="md:hidden text-gray-400" onClick={() => setMobileOpen(!mobileOpen)} aria-label="Menu">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+            {mobileOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            )}
+          </svg>
+        </button>
+      </div>
+      {mobileOpen && (
+        <div className="md:hidden border-t border-white/5 bg-[#0a1628] px-6 py-4 space-y-3 text-sm">
+          {navLinks.map((l) => (
+            <Link key={l.href} href={l.href} className={`block ${isActive(l.href)} transition-colors`} onClick={() => setMobileOpen(false)}>
+              {l.label}
             </Link>
-            <Link
-              href="/register"
-              className="px-4 py-2 rounded-lg bg-[#C2452D] hover:bg-[#A83A25] transition font-semibold text-sm"
-            >
-              Commencer
-            </Link>
-          </>
-        )}
-      </nav>
+          ))}
+          {loggedIn && (
+            <button onClick={handleLogout} className="block text-gray-500 hover:text-red-400 transition-colors">
+              Déconnexion
+            </button>
+          )}
+        </div>
+      )}
     </header>
   );
 }
+
+export default Header;
