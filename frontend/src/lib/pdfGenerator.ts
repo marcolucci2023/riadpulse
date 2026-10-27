@@ -190,7 +190,7 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   ];
   mods.sort((a, b) => a.score - b.score);
 
-  const wPct = (w: number) => (w <= 1 ? Math.round(w * 100) : Math.round(w));
+  const wPct = (w: number) => { const v = w ?? 0.25; if (isNaN(v) || v <= 0) return 25; return v <= 1 ? Math.round(v * 100) : Math.round(v); };
   const weakest = mods[0];
   const scoreGain90 = Math.round(10 * (wPct(weakest.weight) / 100) * 10) / 10;
   const target90 = Math.min(100, Math.round((score + scoreGain90) * 10) / 10);
@@ -377,11 +377,12 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     headStyles: { fillColor: [231, 111, 81], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
     bodyStyles: { fillColor: [20, 30, 50], textColor: [200, 200, 200], fontSize: 9 },
     alternateRowStyles: { fillColor: [25, 38, 60] },
+    tableWidth: CW,
     columnStyles: {
-      0: { cellWidth: 50, halign: "left", fontStyle: "bold" },
-      1: { cellWidth: 35, halign: "right" },
-      2: { cellWidth: 35, halign: "right" },
-      3: { cellWidth: 35, halign: "right" },
+      0: { halign: "left", fontStyle: "bold" },
+      1: { halign: "right" },
+      2: { halign: "right" },
+      3: { halign: "right" },
     },
     margin: { left: M, right: M },
   });
