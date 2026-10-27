@@ -46,7 +46,7 @@ const LABELS: Record<string, string> = {
   site_web: "Visibilit\u00e9",
   pricing: "Prix",
   reputation: "R\u00e9putation",
-  commissions: "R\u00e9s. directes",
+  commissions: "R\u00e9servations directes",
 };
 
 const BENCH: Record<number, Record<string, { adr: number; booking: number; reviews: number; direct: number }>> = {
@@ -148,7 +148,7 @@ function getActions(data: GlobalAuditResponse, f: FormData) {
     if (key === "reputation") {
       if (s < 30) items.push({ pri: "P1", module: label, action: "Syst\u00e8me collecte avis post-s\u00e9jour (WhatsApp + email J+1)", impact: `+${fmt(ca * 0.06)} MAD`, effort: "Faible", delai: "15j", score: s });
       else if (s < 60) items.push({ pri: "P2", module: label, action: "R\u00e9pondre 100% des avis en 24h + r\u00e9soudre 3 plaintes r\u00e9currentes", impact: `+${fmt(ca * 0.04)} MAD`, effort: "Faible", delai: "30j", score: s });
-      else items.push({ pri: "P4", module: label, action: isHigh ? "Consolider l'avantage : publier les meilleurs avis sur le site, d\u00e9velopper Google et maintenir le processus de r\u00e9ponse" : "Publier les meilleurs avis sur le site + diversifier Google", impact: isHigh ? `Protection` : `+${fmt(ca * 0.02)} MAD`, effort: "Faible", delai: "15j", score: s });
+      else items.push({ pri: "P4", module: label, action: isHigh ? "Consolider l'avantage : publier les meilleurs avis sur le site, d\u00e9velopper Google et maintenir le processus de r\u00e9ponse" : "Publier les meilleurs avis sur le site + diversifier Google", impact: isHigh ? "Protection" : `+${fmt(ca * 0.02)} MAD`, effort: "Faible", delai: "15j", score: s });
     }
     if (key === "commissions") {
       if (s < 30) items.push({ pri: "P1", module: label, action: "Canal WhatsApp Business + offre exclusive '-10% en direct'", impact: `+${fmt(ca * 0.10)} MAD`, effort: "Faible", delai: "7j", score: s });
@@ -161,34 +161,33 @@ function getActions(data: GlobalAuditResponse, f: FormData) {
   return items.slice(0, 5);
 }
 
-function conclusionParas(data: GlobalAuditResponse, f: FormData, gain12: number): string[] {
+function conclusionParas(data: GlobalAuditResponse, f: FormData, gain12: number, central: number, recov: number): string[] {
   const g = data.grade || "C";
-  const loss = data.total_annual_loss_mad || 0;
   const score = data.global_score || 0;
   const ca = f.annual_revenue_mad || 0;
-  const pct = ca > 0 ? Math.round((loss / ca) * 100) : 0;
+  const pct = ca > 0 ? Math.round((central / ca) * 100) : 0;
 
   if (g === "A") return [
     `${f.riad_name} fait partie des riads les plus performants de ${f.city} avec un score de ${score}/100.`,
-    `L'opportunit\u00e9 de croissance estim\u00e9e est d'environ ${fmt(loss)} MAD/an, bien en dessous de la moyenne du secteur.`,
+    `L'opportunit\u00e9 de croissance estim\u00e9e est d'environ ${fmt(central)} MAD/an, bien en dessous de la moyenne du secteur.`,
     `Notre accompagnement vous fera passer de \u00ab tr\u00e8s bon \u00bb \u00e0 \u00ab r\u00e9f\u00e9rence du march\u00e9 \u00bb en optimisant les derniers d\u00e9tails.`,
     `Prochaine \u00e9tape : un appel de 15 minutes pour identifier les 2-3 leviers restants.`,
   ];
   if (g === "B") return [
-    `${f.riad_name} pr\u00e9sente une opportunit\u00e9 de croissance estim\u00e9e \u00e0 environ ${fmt(loss)} MAD par an, principalement li\u00e9e au pricing et au d\u00e9veloppement des r\u00e9servations directes.`,
+    `${f.riad_name} pr\u00e9sente une opportunit\u00e9 de croissance estim\u00e9e \u00e0 environ ${fmt(central)} MAD par an, principalement li\u00e9e au pricing et au d\u00e9veloppement des r\u00e9servations directes.`,
     `Avec un score de ${score}/100, vous \u00eates au-dessus de la moyenne mais loin du potentiel r\u00e9el de votre \u00e9tablissement.`,
     `Selon les cas accompagn\u00e9s, une r\u00e9cup\u00e9ration de 25 \u00e0 40% de cette opportunit\u00e9 est envisageable en 90 jours, sous r\u00e9serve de l'ex\u00e9cution des recommandations.`,
     `Prochaine \u00e9tape : un audit vid\u00e9o personnalis\u00e9 de 3 minutes pour voir exactement o\u00f9 agir.`,
   ];
   if (g === "C") return [
-    `${f.riad_name} sous-performe par rapport \u00e0 ses concurrents directs. L'opportunit\u00e9 de croissance est estim\u00e9e \u00e0 environ ${fmt(loss)} MAD/an, soit ${fmt(loss / 12)} MAD/mois.`,
+    `${f.riad_name} sous-performe par rapport \u00e0 ses concurrents directs. L'opportunit\u00e9 de croissance est estim\u00e9e \u00e0 environ ${fmt(central)} MAD/an, soit ${fmt(central / 12)} MAD/mois.`,
     `Une part significative de cette opportunit\u00e9 est r\u00e9cup\u00e9rable avec des actions concr\u00e8tes en 6 mois.`,
     `Selon les cas accompagn\u00e9s, une progression de +5 \u00e0 +10 points est envisageable en 90 jours, sous r\u00e9serve de l'ex\u00e9cution du plan d'action.`,
     `Prochaine \u00e9tape : un diagnostic complet avec plan d'action personnalis\u00e9.`,
   ];
   return [
-    `${f.riad_name} est en urgence digitale. L'opportunit\u00e9 de croissance est estim\u00e9e \u00e0 environ ${fmt(loss)} MAD sur un CA de ${fmt(ca)} MAD, soit ${pct}% de votre chiffre d'affaires.`,
-    `Chaque mois sans action repr\u00e9sente environ ${fmt(loss / 12)} MAD de revenu potentiel non capt\u00e9.`,
+    `${f.riad_name} est en urgence digitale. L'opportunit\u00e9 de croissance est estim\u00e9e \u00e0 environ ${fmt(central)} MAD sur un CA de ${fmt(ca)} MAD, soit ${pct}% de votre chiffre d'affaires.`,
+    `Chaque mois sans action repr\u00e9sente environ ${fmt(central / 12)} MAD de revenu potentiel non capt\u00e9.`,
     `La situation est r\u00e9versible. Avec un accompagnement structur\u00e9, une r\u00e9cup\u00e9ration significative est envisageable en 12 mois.`,
     `Prochaine \u00e9tape : un appel prioritaire cette semaine pour \u00e9tablir un plan d'action imm\u00e9diat.`,
   ];
@@ -201,20 +200,18 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   const gi = gradeInfo(data.grade);
   const b = getBench(form);
   const ca = form.annual_revenue_mad || 0;
-  const loss = data.total_annual_loss_mad || 0;
-  const lossEur = data.total_annual_loss_eur || 0;
   const score = data.global_score || 0;
   const subs = data.sub_scores || {};
 
-  const perteTheo = ca > 0 ? Math.round(ca * (1 - score / 100)) : loss;
-  const facteur = perteTheo > 0 ? Math.round((loss / perteTheo) * 1000) / 10 : 100;
+  const perteTheo = ca > 0 ? Math.round(ca * (1 - score / 100)) : (data.total_annual_loss_mad || 0);
+  const facteur = perteTheo > 0 ? Math.round(((data.total_annual_loss_mad || perteTheo) / perteTheo) * 1000) / 10 : 100;
   const central = Math.round(perteTheo * facteur / 100);
   const fourchetteBasse = Math.round(perteTheo * 0.70);
   const fourchetteHaute = perteTheo;
-
-  const gain3 = Math.round(central * 0.25);
-  const gain6 = Math.round(central * 0.55);
-  const gain12 = Math.round(central * 0.85);
+  const recov = Math.round(central * 0.70);
+  const gain3 = Math.round(recov * 0.25);
+  const gain6 = Math.round(recov * 0.55);
+  const gain12 = Math.round(recov * 0.85);
   const residuel12 = central - gain12;
 
   const sorted = Object.entries(subs).sort((a, b) => (a[1].score || 0) - (b[1].score || 0));
@@ -321,7 +318,7 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(...C.muted);
-    doc.text(`(poids ${wPct}%)`, 95, y);
+    doc.text(`(poids ${wPct}%)`, 110, y);
     y += 6;
 
     doc.setFontSize(9);
@@ -424,16 +421,16 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
     startY: 42,
     head: [benchRows[0]],
     body: benchRows.slice(1),
-    headStyles: { fillColor: C.terra, textColor: C.white, fontStyle: "bold", fontSize: 9, halign: "center" },
-    bodyStyles: { fontSize: 9, textColor: C.light, halign: "center" },
+    headStyles: { fillColor: C.terra, textColor: C.white, fontStyle: "bold", fontSize: 9 },
+    bodyStyles: { fontSize: 9, textColor: C.light },
     alternateRowStyles: { fillColor: C.surface },
     theme: "grid",
     styles: { cellPadding: 5 },
     columnStyles: {
-      0: { cellWidth: 45, halign: "left", fontStyle: "bold" },
-      1: { cellWidth: 35 },
-      2: { cellWidth: 35 },
-      3: { cellWidth: 30 },
+      0: { cellWidth: 42, halign: "left", fontStyle: "bold" },
+      1: { cellWidth: 32, halign: "right" },
+      2: { cellWidth: 32, halign: "right" },
+      3: { cellWidth: 28, halign: "right" },
     },
     margin: { left: 25, right: 25 },
   });
@@ -592,9 +589,9 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
       styles: { cellPadding: 3 },
       columnStyles: {
         0: { cellWidth: 10, fontStyle: "bold", textColor: C.terra },
-        1: { cellWidth: 22, fontStyle: "bold" },
-        2: { cellWidth: 65 },
-        3: { cellWidth: 25, textColor: C.green },
+        1: { cellWidth: 28, fontStyle: "bold" },
+        2: { cellWidth: 62 },
+        3: { cellWidth: 22, textColor: C.green },
         4: { cellWidth: 16 },
         5: { cellWidth: 14 },
       },
@@ -753,7 +750,7 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   doc.setDrawColor(...C.surface);
   doc.line(20, 38, 190, 38);
 
-  const paras = conclusionParas(data, form, gain12);
+  const paras = conclusionParas(data, form, gain12, central, recov);
   y = 52;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
