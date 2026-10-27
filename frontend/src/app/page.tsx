@@ -163,6 +163,7 @@ export default function Home() {
             <a href="#features" className="hover:text-white transition-colors">Fonctionnalités</a>
             <a href="#process" className="hover:text-white transition-colors">Comment ça marche</a>
             <a href="#result" className="hover:text-white transition-colors">Résultat</a>
+            <Link href="/tarifs" className="hover:text-white transition-colors">Tarifs</Link>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
@@ -214,6 +215,12 @@ export default function Home() {
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-white/10 hover:border-white/20 text-gray-300 hover:text-white font-medium transition-all"
               >
                 Voir un exemple
+              </Link>
+              <Link
+                href="/tarifs"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-[#f4a261]/30 hover:border-[#f4a261]/60 text-[#f4a261] hover:text-white font-medium transition-all"
+              >
+                Voir les tarifs
               </Link>
             </div>
 
