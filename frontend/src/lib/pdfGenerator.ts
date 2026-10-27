@@ -434,6 +434,14 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     "Note sur la coherence des donnees : le CA declare peut inclure ou exclure la restauration, les transferts et les extras. L'occupation peut etre annuelle ou saisonniere. L'ADR peut etre le prix moyen effectif ou le prix rack. Le calcul d'opportunite se base sur le CA total declare ; si celui-ci ne couvre qu'une partie de l'activite, l'opportunite reelle peut etre superieure.",
     "",
     "Les projections financieres (pages 7-8) sont des estimations fondees sur des hypotheses de recuperation partielle. Elles ne constituent pas une garantie de resultat.",
+    "",
+    "Methode de calcul du score : le modele utilise une approximation lineaire ou un score de 100/100 correspond a une performance digitale optimale. Chaque point en dessous de 100 represente un pourcentage theorique de CA non optimise. Cette methode est une simplification ; les resultats reels dependent de nombreux facteurs operationnels.",
+    "",
+    "Normalisation des avis : les notes de chaque plateforme (Booking /10, TripAdvisor /5, Google /5) sont ramenees sur une echelle commune de 10 pour le calcul de la moyenne.",
+    "",
+    "Verification de coherence : avec " + form.num_rooms + " chambres, un ADR de " + fmt(form.current_price_mad) + " MAD et une occupation de " + Math.round(form.occupancy_rate * 100) + "%, le CA hebergement theorique serait d'environ " + fmt(Math.round(form.num_rooms * form.occupancy_rate * 365 * form.current_price_mad)) + " MAD. Le CA declare de " + fmt(ca) + " MAD peut inclure la restauration, les transferts, les extras, ou refleter un ADR effectif different du prix rack.",
+    "",
+    "Commissions : l'economie affichee est calculee sur les commissions brutes OTA. Les couts de marketing, d'acquisition et de paiement lies au canal direct ne sont pas deduits du gain net.",
   ];
   mp.forEach((p) => {
     if (p === "") { y += 5; return; }
