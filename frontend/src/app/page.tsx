@@ -163,7 +163,7 @@ export default function Home() {
             <a href="#features" className="hover:text-white transition-colors">Fonctionnalités</a>
             <a href="#process" className="hover:text-white transition-colors">Comment ça marche</a>
             <a href="#result" className="hover:text-white transition-colors">Résultat</a>
-            <Link href="/tarifs" className="hover:text-white transition-colors">Tarifs</Link>
+            <a href="#tarifs" className="hover:text-white transition-colors">Tarifs</a>
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
@@ -412,6 +412,83 @@ export default function Home() {
               >
                 Obtenir mon diagnostic
                 <ArrowRightIcon />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+   
+
+      {/* ── TARIFS ── */}
+      <section id="tarifs" className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-xs uppercase tracking-widest text-[#e76f51] font-semibold mb-3">Tarifs</p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+              Des formules simples, sans surprise.
+            </h2>
+            <p className="text-gray-400 mt-3 max-w-xl mx-auto">
+              Paiement par virement bancaire ou en especes. Aucun abonnement cache.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Flash */}
+            <div className="bg-[#0f1d32] border border-white/[0.06] rounded-2xl p-8 flex flex-col">
+              <p className="text-sm text-gray-500 uppercase tracking-wider">Audit Flash</p>
+              <div className="mt-4 mb-6">
+                <span className="text-4xl font-bold text-white">500</span>
+                <span className="text-gray-500 ml-2">MAD</span>
+              </div>
+              <p className="text-gray-400 text-sm mb-6">Diagnostic rapide de votre presence en ligne.</p>
+              <ul className="space-y-3 text-sm text-gray-300 flex-1">
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Score global sur 100</li>
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>3 recommandations cles</li>
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Benchmark local</li>
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Rapport PDF 5 pages</li>
+              </ul>
+              <Link href="/score" className="mt-8 block text-center py-3 rounded-lg border border-white/10 hover:border-white/20 text-gray-300 hover:text-white font-medium transition-all">
+                Commander
+              </Link>
+            </div>
+
+            {/* Complet */}
+            <div className="bg-[#1a2a44] border-2 border-[#e76f51] rounded-2xl p-8 flex flex-col relative">
+              <span className="absolute -top-3 right-6 bg-[#e76f51] text-white text-xs font-bold px-4 py-1 rounded-full">RECOMMANDE</span>
+              <p className="text-sm text-[#f4a261] uppercase tracking-wider">Audit Complet + Video</p>
+              <div className="mt-4 mb-6">
+                <span className="text-4xl font-bold text-white">1 500</span>
+                <span className="text-gray-500 ml-2">MAD</span>
+              </div>
+              <p className="text-gray-400 text-sm mb-6">Analyse approfondie avec plan d'action detaille.</p>
+              <ul className="space-y-3 text-sm text-gray-300 flex-1">
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Score global + 4 modules</li>
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Rapport PDF 10 pages</li>
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Video 15 min commentee</li>
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Plan d'action 90 jours</li>
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Calculateur commissions</li>
+              </ul>
+              <Link href="/score" className="mt-8 block text-center py-3 rounded-lg bg-[#e76f51] hover:bg-[#d4603f] text-white font-semibold transition-all">
+                Commander
+              </Link>
+            </div>
+
+            {/* Suivi */}
+            <div className="bg-[#0f1d32] border border-white/[0.06] rounded-2xl p-8 flex flex-col">
+              <p className="text-sm text-gray-500 uppercase tracking-wider">Suivi Mensuel</p>
+              <div className="mt-4 mb-6">
+                <span className="text-4xl font-bold text-white">700</span>
+                <span className="text-gray-500 ml-2">MAD/mois</span>
+              </div>
+              <p className="text-gray-400 text-sm mb-6">Accompagnement continu pour maximiser vos revenus.</p>
+              <ul className="space-y-3 text-sm text-gray-300 flex-1">
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Suivi mensuel des KPIs</li>
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Strategie tarifaire</li>
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Optimisation distribution</li>
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Support WhatsApp prioritaire</li>
+              </ul>
+              <Link href="/score" className="mt-8 block text-center py-3 rounded-lg border border-white/10 hover:border-white/20 text-gray-300 hover:text-white font-medium transition-all">
+                Demander un devis
               </Link>
             </div>
           </div>
