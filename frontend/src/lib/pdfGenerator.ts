@@ -103,6 +103,50 @@ const getBench = (city: string, stars: number): Bench => {
   return d[Math.max(3, Math.min(5, Math.round(stars)))];
 };
 
+/* ------------------------------------------------------------------ */
+/*  Calcul des scores de modules a partir du formulaire                */
+/* ------------------------------------------------------------------ */
+
+const calcPricingScore = (form: FormData, bench: Bench): number => {
+  const ratio = form.current_price_mad / Math.max(bench.adr, 1);
+  if (ratio >= 0.85 && ratio <= 1.15) return 82;
+  if (ratio >= 0.7 && ratio <= 1.3) return 65;
+  if (ratio >= 0.55 && ratio <= 1.6) return 48;
+  return 35;
+};
+
+const calcDistributionScore = (form: FormData, bench: Bench): number => {
+  const directRatio = form.direct_percent / Math.max(bench.direct, 1);
+  const base = Math.min(100, Math.round(directRatio * 65 + 20));
+  const responseBonus = Math.round((form.response_rate_percent / 100) * 10);
+  return Math.min(100, base + responseBonus);
+};
+
+const calcReputationScore = (form: FormData): number => {
+  const scores: number[] = [];
+  if (form.booking_score > 0) scores.push(form.booking_score);
+  if (form.tripadvisor_score > 0) scores.push(form.tripadvisor_score);
+  if (form.google_score > 0) scores.push(form.google_score);
+  if (scores.length === 0) return 50;
+  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  const reviewCount = form.booking_reviews + form.tripadvisor_reviews + form.google_reviews;
+  const volumeBonus = Math.min(10, Math.round(reviewCount / 50));
+  return Math.min(100, Math.round(avg * 9 + volumeBonus));
+};
+
+const calcRevenueScore = (form: FormData): number => {
+  const occ = form.occupancy_rate * 100;
+  if (occ >= 80) return 85;
+  if (occ >= 70) return 72;
+  if (occ >= 60) return 60;
+  if (occ >= 50) return 50;
+  return 40;
+};
+
+/* ------------------------------------------------------------------ */
+/*  Diagnostic par module                                              */
+/* ------------------------------------------------------------------ */
+
 const moduleDiag = (key: string, score: number, form: FormData, bench: Bench): string => {
   if (key === "pricing") {
     const note = " Le score Prix ne mesure pas uniquement le niveau de l'ADR. Il evalue principalement l'adaptation des tarifs a la saison, a la demande, aux evenements et au delai de reservation.";
@@ -117,11 +161,16 @@ const moduleDiag = (key: string, score: number, form: FormData, bench: Bench): s
     return "Votre part de reservations directes atteint " + form.direct_percent + "%, au-dessus de la mediane locale de " + bench.direct + "%. Continuez a valoriser vos canaux directs et a maitriser vos couts d'acquisition.";
   }
   if (key === "reputation") {
-    const avg = (form.booking_score + form.tripadvisor_score + form.google_score) / 3;
+    const scores: number[] = [];
+    if (form.booking_score > 0) scores.push(form.booking_score);
+    if (form.tripadvisor_score > 0) scores.push(form.tripadvisor_score);
+    if (form.google_score > 0) scores.push(form.google_score);
+    const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
     const tot = form.booking_reviews + form.tripadvisor_reviews + form.google_reviews;
-    if (score >= 80) return "Votre note moyenne de " + avg.toFixed(1) + "/10 avec " + fmt(tot) + " avis temoigne d'une bonne reputation en ligne. Maintenez ce niveau de qualite.";
-    if (score >= 60) return "Votre note moyenne de " + avg.toFixed(1) + "/10 avec " + fmt(tot) + " avis est correcte mais peut progresser. Un plan de reponse systematique aux avis est recommande.";
-    return "Votre note moyenne de " + avg.toFixed(1) + "/10 avec " + fmt(tot) + " avis est en dessous des standards du marche. La gestion active des avis est une priorite.";
+    const platforms = scores.length + " plateforme(s)";
+    if (score >= 80) return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis) temoigne d'une bonne reputation. Maintenez ce niveau.";
+    if (score >= 60) return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis) est correcte mais peut progresser. Un plan de reponse systematique aux avis est recommande.";
+    return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis) est en dessous des standards. La gestion active des avis est une priorite.";
   }
   if (key === "revenue") {
     const occ = Math.round(form.occupancy_rate * 100);
@@ -132,29 +181,38 @@ const moduleDiag = (key: string, score: number, form: FormData, bench: Bench): s
   return "";
 };
 
-const conclusionParas = (g: string, score: number, central: number, recov: number): string[] => {
+/* ------------------------------------------------------------------ */
+/*  Conclusion dynamique                                               */
+/* ------------------------------------------------------------------ */
+
+const conclusionParas = (g: string, score: number, central: number, recov: number, gain12: number): string[] => {
+  const base = "Cette evaluation est indicative et fondee sur les donnees declarees. Les resultats reels dependent de nombreux facteurs operationnels.";
   if (g === "A") return [
     "Votre etablissement obtient un score de " + score + "/100, ce qui le place parmi les meilleurs de sa categorie.",
-    "Meme a ce niveau, une opportunite de croissance estimee a ~" + fmt(central) + " MAD subsiste. En recuperant une partie de ce potentiel, vous pourriez generer jusqu'a " + fmt(recov) + " MAD supplementaires.",
-    "Cette evaluation est indicative et fondee sur les donnees declarees. Les resultats reels dependent de nombreux facteurs operationnels.",
+    "Meme a ce niveau, une opportunite de croissance estimee a ~" + fmt(central) + " MAD subsiste. Le potentiel recuperable realiste est d'environ " + fmt(recov) + " MAD, dont ~" + fmt(gain12) + " MAD realisables dans les 12 premiers mois.",
+    base,
   ];
   if (g === "B") return [
     "Votre etablissement obtient un score de " + score + "/100, ce qui constitue une base solide.",
     "Avec un score de " + score + "/100, votre etablissement dispose de bonnes bases mais conserve un potentiel d'amelioration important.",
-    "Une opportunite de croissance estimee a ~" + fmt(central) + " MAD a ete identifiee. En mettant en oeuvre les recommandations cles, vous pourriez recuperer environ " + fmt(recov) + " MAD.",
-    "Cette evaluation est indicative et fondee sur les donnees declarees. Les resultats reels dependent de nombreux facteurs operationnels.",
+    "Une opportunite de croissance estimee a ~" + fmt(central) + " MAD a ete identifiee. Le potentiel recuperable realiste est d'environ " + fmt(recov) + " MAD, dont ~" + fmt(gain12) + " MAD realisables dans les 12 premiers mois.",
+    base,
   ];
   if (g === "C") return [
     "Votre etablissement obtient un score de " + score + "/100, ce qui revele un potentiel significatif d'amelioration.",
-    "Une opportunite de croissance estimee a ~" + fmt(central) + " MAD a ete identifiee. En priorisant les actions les plus impactantes, vous pourriez recuperer environ " + fmt(recov) + " MAD.",
-    "Cette evaluation est indicative et fondee sur les donnees declarees. Les resultats reels dependent de nombreux facteurs operationnels.",
+    "Une opportunite de croissance estimee a ~" + fmt(central) + " MAD a ete identifiee. Le potentiel recuperable realiste est d'environ " + fmt(recov) + " MAD, dont ~" + fmt(gain12) + " MAD realisables dans les 12 premiers mois.",
+    base,
   ];
   return [
     "Votre etablissement obtient un score de " + score + "/100, ce qui indique des axes d'amelioration majeurs.",
-    "Une opportunite de croissance estimee a ~" + fmt(central) + " MAD a ete identifiee. En agissant sur les leviers prioritaires, vous pourriez recuperer environ " + fmt(recov) + " MAD.",
-    "Cette evaluation est indicative et fondee sur les donnees declarees. Les resultats reels dependent de nombreux facteurs operationnels.",
+    "Une opportunite de croissance estimee a ~" + fmt(central) + " MAD a ete identifiee. Le potentiel recuperable realiste est d'environ " + fmt(recov) + " MAD, dont ~" + fmt(gain12) + " MAD realisables dans les 12 premiers mois.",
+    base,
   ];
 };
+
+/* ------------------------------------------------------------------ */
+/*  PDF Generator                                                      */
+/* ------------------------------------------------------------------ */
 
 export function generatePDF(result: AuditResult, form: FormData): void {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -163,15 +221,49 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   const M = 20;
   const CW = W - 2 * M;
 
-  const score = Math.round(result.global_score * 10) / 10;
-  const g = grade(score);
-  const ca = form.annual_revenue_mad;
   const bench = getBench(form.city, form.stars);
 
+  /* --- Mapper les modules backend dynamiquement --- */
+  const backendMods = Object.entries(result.modules || {});
+  const mapped: Record<string, { score: number; weight: number; details: string }> = {};
+
+  backendMods.forEach(([key, val]) => {
+    const k = key.toLowerCase();
+    if (k.includes("pric") || k.includes("tarif") || k.includes("adr")) mapped.pricing = val;
+    else if (k.includes("distrib") || k.includes("channel") || k.includes("canal") || k.includes("ota")) mapped.distribution = val;
+    else if (k.includes("reput") || k.includes("review") || k.includes("avis") || k.includes("guest") || k.includes("note")) mapped.reputation = val;
+    else if (k.includes("revenue") || k.includes("rev") || k.includes("occup") || k.includes("income")) mapped.revenue = val;
+  });
+
+  /* --- Construire les 4 modules : backend si dispo, sinon calcule --- */
+  const pricingScore = mapped.pricing?.score ?? calcPricingScore(form, bench);
+  const distribScore = mapped.distribution?.score ?? calcDistributionScore(form, bench);
+  const reputScore = mapped.reputation?.score ?? calcReputationScore(form);
+  const revenueScore = mapped.revenue?.score ?? calcRevenueScore(form);
+
+  const w1 = mapped.pricing?.weight ?? 0.25;
+  const w2 = mapped.distribution?.weight ?? 0.25;
+  const w3 = mapped.reputation?.weight ?? 0.25;
+  const w4 = mapped.revenue?.weight ?? 0.25;
+  const totalW = w1 + w2 + w3 + w4;
+
+  const mods = [
+    { key: "pricing", label: "Prix & Tarifs", score: pricingScore, weight: w1 },
+    { key: "distribution", label: "Distribution", score: distribScore, weight: w2 },
+    { key: "reputation", label: "Reputation", score: reputScore, weight: w3 },
+    { key: "revenue", label: "Revenus", score: revenueScore, weight: w4 },
+  ];
+
+  /* --- Score global RECALCULE = moyenne ponderee des 4 modules --- */
+  const score = Math.round(mods.reduce((s, m) => s + m.score * m.weight, 0) / totalW * 10) / 10;
+  const g = grade(score);
+  const ca = form.annual_revenue_mad;
+
+  /* --- Calculs financiers coherents --- */
   const perteTheo = Math.round(ca * (1 - score / 100));
   const backendLossRaw = result.loss ?? result.estimated_loss_mad ?? result.estimated_loss ?? result.potential_loss_mad ?? result.annual_loss_mad ?? perteTheo;
   const backendLoss = perteTheo > 0 ? Math.min(Math.max(backendLossRaw, 0), perteTheo) : 0;
-  const facteur = perteTheo > 0 ? (backendLoss / perteTheo) * 100 : 0;
+  const facteur = perteTheo > 0 ? (backendLoss / perteTheo) * 100 : 100;
   const central = Math.round(perteTheo * (facteur / 100));
   const fourchetteLow = Math.round(perteTheo * 0.7);
   const fourchetteHigh = perteTheo;
@@ -182,21 +274,23 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   const residuel12 = central - gain12;
   const pctGainCentral = central > 0 ? Math.round((gain12 / central) * 1000) / 10 : 0;
 
-  const mods = [
-    { key: "pricing", label: "Prix & Tarifs", ...(result.modules.pricing || { score: 50, weight: 0.25, details: "" }) },
-    { key: "distribution", label: "Distribution", ...(result.modules.distribution || { score: 50, weight: 0.25, details: "" }) },
-    { key: "reputation", label: "Reputation", ...(result.modules.reputation || { score: 50, weight: 0.25, details: "" }) },
-    { key: "revenue", label: "Revenus", ...(result.modules.revenue || { score: 50, weight: 0.25, details: "" }) },
-  ];
+  /* --- Tri par score croissant --- */
   mods.sort((a, b) => a.score - b.score);
 
-  const wPct = (w: number) => { const v = w ?? 0.25; if (isNaN(v) || v <= 0) return 25; return v <= 1 ? Math.round(v * 100) : Math.round(v); };
+  const wPct = (w: number) => {
+    const v = w ?? 0.25;
+    if (isNaN(v) || v <= 0) return 25;
+    return v <= 1 ? Math.round(v * 100) : Math.round(v);
+  };
   const weakest = mods[0];
-  const scoreGain90 = Math.round(10 * (wPct(weakest.weight) / 100) * 10) / 10;
-  const target90 = Math.min(100, Math.round((score + scoreGain90) * 10) / 10);
-  const target12 = Math.min(100, score + 10);
+  const weakestGain = 10;
+  const globalGain90 = Math.round(weakestGain * (wPct(weakest.weight) / 100) * 10) / 10;
+  const target90 = Math.min(100, Math.round((score + globalGain90) * 10) / 10);
+  const target12 = Math.min(100, Math.round(score + 10));
 
-  // PAGE 1 : GARDE
+  /* ================================================================ */
+  /*  PAGE 1 : GARDE                                                   */
+  /* ================================================================ */
   doc.setFillColor(10, 22, 40);
   doc.rect(0, 0, W, H, "F");
   doc.setFillColor(231, 111, 81);
@@ -269,7 +363,9 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.text("Date du rapport : " + new Date().toLocaleDateString("fr-FR"), M, H - 15);
   doc.text("RiadPulse - Audit genere automatiquement", W - M, H - 15, { align: "right" });
 
-  // PAGE 2 : RESUME EXECUTIF
+  /* ================================================================ */
+  /*  PAGE 2 : RESUME EXECUTIF                                         */
+  /* ================================================================ */
   doc.addPage();
   doc.setFillColor(10, 22, 40);
   doc.rect(0, 0, W, H, "F");
@@ -314,7 +410,9 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.text("Ajustement facteur " + Math.round(facteur) + "% vers opportunite centrale : ~" + fmt(central) + " MAD", M + 5, y + 28);
   doc.text("Fourchette : " + fmt(fourchetteLow) + " - " + fmt(fourchetteHigh) + " MAD (70%-100% du potentiel theorique)", M + 5, y + 36);
 
-  // PAGE 3 : METHODOLOGIE
+  /* ================================================================ */
+  /*  PAGE 3 : METHODOLOGIE                                            */
+  /* ================================================================ */
   doc.addPage();
   doc.setFillColor(10, 22, 40);
   doc.rect(0, 0, W, H, "F");
@@ -333,9 +431,9 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     "",
     "Niveau de confiance : Moyen.",
     "",
-    "Les donnees declarees n'ont pas ete verifiees de maniere independante. Le score global est une estimation indicative, pas une mesure certifiee. La fourchette de perte theorique (70%-100%) reflete cette marge d'incertitude.",
+    "Le score global est calcule comme la moyenne ponderee des 4 modules affiches (Prix, Distribution, Reputation, Revenus). Les donnees declarees n'ont pas ete verifiees de maniere independante.",
     "",
-    "Les benchmarks locaux sont des medianes par ville et categorie d'etoiles. Votre etablissement peut legitimement se situer au-dessus ou en dessous de ces valeurs selon son positionnement specifique.",
+    "Note sur la coherence des donnees : le chiffre d'affaires, le taux d'occupation et l'ADR declares peuvent couvrir des perimetres ou des periodes differents (ex. : CA net vs brut, occupation annuelle vs saisonniere, ADR moyen vs prix rack). Ces ecarts sont normaux et n'invalident pas l'analyse.",
     "",
     "Les projections financieres (pages 7-8) sont des estimations fondees sur des hypotheses de recuperation partielle. Elles ne constituent pas une garantie de resultat.",
   ];
@@ -346,7 +444,9 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     y += l.length * 5 + 3;
   });
 
-  // PAGE 4 : BENCHMARK LOCAL
+  /* ================================================================ */
+  /*  PAGE 4 : BENCHMARK LOCAL                                         */
+  /* ================================================================ */
   doc.addPage();
   doc.setFillColor(10, 22, 40);
   doc.rect(0, 0, W, H, "F");
@@ -374,15 +474,16 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     startY: 42,
     head: [["Indicateur", "Vous", "Mediane", "Ecart"]],
     body: benchRows,
-    headStyles: { fillColor: [231, 111, 81], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
-    bodyStyles: { fillColor: [20, 30, 50], textColor: [200, 200, 200], fontSize: 9 },
+    theme: "grid",
+    styles: { cellPadding: 4, fontSize: 9, lineWidth: 0.15, lineColor: [80, 90, 110] },
+    headStyles: { fillColor: [231, 111, 81], textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
+    bodyStyles: { fillColor: [20, 30, 50], textColor: [200, 200, 200] },
     alternateRowStyles: { fillColor: [25, 38, 60] },
-    tableWidth: CW,
     columnStyles: {
-      0: { halign: "left", fontStyle: "bold" },
-      1: { halign: "right" },
-      2: { halign: "right" },
-      3: { halign: "right" },
+      0: { cellWidth: 55, fontStyle: "bold", halign: "left" },
+      1: { cellWidth: 38, halign: "right" },
+      2: { cellWidth: 38, halign: "right" },
+      3: { cellWidth: 39, halign: "right" },
     },
     margin: { left: M, right: M },
   });
@@ -399,7 +500,9 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   else ba += "Votre part de direct est alignee sur la mediane locale.";
   doc.text(doc.splitTextToSize(ba, CW), M, y);
 
-  // PAGE 5 : CALCULATEUR COMMISSIONS
+  /* ================================================================ */
+  /*  PAGE 5 : CALCULATEUR COMMISSIONS                                 */
+  /* ================================================================ */
   doc.addPage();
   doc.setFillColor(10, 22, 40);
   doc.rect(0, 0, W, H, "F");
@@ -448,8 +551,10 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     startY: y,
     head: [["Canal", "Part", "Commission", "Cout annuel"]],
     body: commRows,
-    headStyles: { fillColor: [231, 111, 81], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
-    bodyStyles: { fillColor: [20, 30, 50], textColor: [200, 200, 200], fontSize: 9 },
+    theme: "grid",
+    styles: { cellPadding: 4, fontSize: 9, lineWidth: 0.15, lineColor: [80, 90, 110] },
+    headStyles: { fillColor: [231, 111, 81], textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
+    bodyStyles: { fillColor: [20, 30, 50], textColor: [200, 200, 200] },
     alternateRowStyles: { fillColor: [25, 38, 60] },
     columnStyles: {
       0: { cellWidth: 45, fontStyle: "bold" },
@@ -479,7 +584,9 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   const scText = "En basculant vers " + newBk + "% Booking / " + newAb + "% Airbnb / " + newEx + "% Expedia / " + newDr + "% direct, vos commissions passeraient de " + fmt(totalComm) + " a " + fmt(newComm) + " MAD. Economie potentielle : " + fmt(saving) + " MAD/an, soit l'equivalent d'environ " + Math.round(saving / Math.max(form.current_price_mad, 1)) + " nuitees au tarif moyen de " + fmt(form.current_price_mad) + " MAD.";
   doc.text(doc.splitTextToSize(scText, CW), M, y);
 
-  // PAGE 6 : PLAN D'ACTION
+  /* ================================================================ */
+  /*  PAGE 6 : PLAN D'ACTION                                           */
+  /* ================================================================ */
   doc.addPage();
   doc.setFillColor(10, 22, 40);
   doc.rect(0, 0, W, H, "F");
@@ -510,7 +617,7 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     let at = "";
     if (m.key === "pricing") at = "Mettre en place une grille tarifaire saisonniere dynamique. Ajuster les prix selon la demande, les evenements locaux et le delai de reservation.";
     else if (m.key === "distribution") { if (m.score >= 80) at = "Protection : votre distribution est deja performante. Maintenez vos efforts sur le canal direct et surveillez l'evolution des commissions OTA."; else at = "Developper le canal direct via un moteur de reservation integre, des offres exclusives site web et une strategie d'email marketing post-sejour."; }
-    else if (m.key === "reputation") { if (m.score >= 90) at = "Protection : votre reputation est un atout majeur. Continuez a repondre a 100% des avis et a encourager les clients satisfaits a partager leur experience."; else at = "Instaurer un processus de reponse aux avis sous 24h. Solliciter activement les avis post-sejour par email et WhatsApp."; }
+    else if (m.key === "reputation") { if (m.score >= 80) at = "Protection : votre reputation est un atout majeur. Continuez a repondre a 100% des avis et a encourager les clients satisfaits a partager leur experience."; else at = "Instaurer un processus de reponse aux avis sous 24h. Solliciter activement les avis post-sejour par email et WhatsApp."; }
     else if (m.key === "revenue") at = "Optimiser le taux d'occupation en basse saison via des packages et promotions cibles. Diversifier les sources de revenus (transferts, experiences, F&B).";
     doc.text(doc.splitTextToSize(at, CW - 16).slice(0, 3), M + 10, y + 18);
     doc.setTextColor(150, 150, 150);
@@ -520,7 +627,9 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     y += 48;
   });
 
-  // PAGE 7 : PLAN 30/60/90
+  /* ================================================================ */
+  /*  PAGE 7 : PLAN 30/60/90                                           */
+  /* ================================================================ */
   doc.addPage();
   doc.setFillColor(10, 22, 40);
   doc.rect(0, 0, W, H, "F");
@@ -533,7 +642,7 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.setTextColor(150, 150, 150);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("Objectif realiste : +" + scoreGain90 + " pts sur le module le plus faible (" + weakest.label + "), vers " + target90 + "/100 global.", M, 34);
+  doc.text("Objectif : +" + weakestGain + " pts sur " + weakest.label + " (de " + weakest.score + " a " + (weakest.score + weakestGain) + "), soit +" + globalGain90 + " pts sur le score global vers " + target90 + "/100.", M, 34);
   const phases = [
     { title: "Jours 1-30 : Fondations", items: ["Auditer la grille tarifaire de " + weakest.label.toLowerCase() + " et identifier les incoherences", "Mettre en place un tableau de bord de suivi hebdomadaire", "Former l'equipe aux bonnes pratiques identifiees dans ce rapport"] },
     { title: "Jours 31-60 : Acceleration", items: ["Deployer les premieres actions correctives sur " + weakest.label.toLowerCase(), "Tester 2 a 3 leviers de croissance a fort impact", "Mesurer les premiers resultats et ajuster la strategie"] },
@@ -558,7 +667,9 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.setFont("helvetica", "italic");
   doc.text("Ces objectifs sont indicatifs et dependent de la mise en oeuvre effective des actions.", M, y + 5);
 
-  // PAGE 8 : PROJECTION 12 MOIS
+  /* ================================================================ */
+  /*  PAGE 8 : PROJECTION 12 MOIS                                      */
+  /* ================================================================ */
   doc.addPage();
   doc.setFillColor(10, 22, 40);
   doc.rect(0, 0, W, H, "F");
@@ -578,8 +689,10 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     startY: y,
     head: [["Horizon", "Gain cumule estime", "Score cible"]],
     body: projRows,
-    headStyles: { fillColor: [231, 111, 81], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 9 },
-    bodyStyles: { fillColor: [20, 30, 50], textColor: [200, 200, 200], fontSize: 9 },
+    theme: "grid",
+    styles: { cellPadding: 4, fontSize: 9, lineWidth: 0.15, lineColor: [80, 90, 110] },
+    headStyles: { fillColor: [231, 111, 81], textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
+    bodyStyles: { fillColor: [20, 30, 50], textColor: [200, 200, 200] },
     alternateRowStyles: { fillColor: [25, 38, 60] },
     columnStyles: {
       0: { cellWidth: 40, fontStyle: "bold" },
@@ -593,15 +706,21 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.text("Gain projete a 12 mois : " + fmt(gain12) + " MAD, soit environ " + pctGainCentral + "% de l'opportunite centrale.", M, y);
-  y += 10;
+  y += 8;
+  doc.setTextColor(180, 180, 180);
+  doc.setFontSize(9);
+  doc.text("Potentiel recuperable total : " + fmt(recov) + " MAD. Le gain a 12 mois represente 85% de ce potentiel.", M, y);
+  y += 8;
   doc.text("Opportunite residuelle a 12 mois : " + fmt(residuel12) + " MAD (potentiel restant a capter au-dela de la premiere annee).", M, y);
-  y += 16;
+  y += 14;
   doc.setTextColor(150, 150, 150);
   doc.setFontSize(8);
   doc.setFont("helvetica", "italic");
   doc.text("Projection indicative fondee sur une mise en oeuvre progressive des recommandations et une recuperation estimee d'environ " + pctGainCentral + "% de l'opportunite identifiee. Resultats non garantis.", M, y);
 
-  // PAGE 9 : OFFRES
+  /* ================================================================ */
+  /*  PAGE 9 : OFFRES                                                  */
+  /* ================================================================ */
   doc.addPage();
   doc.setFillColor(10, 22, 40);
   doc.rect(0, 0, W, H, "F");
@@ -649,7 +768,9 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.text("Pour en savoir plus, contactez-nous via WhatsApp ou par email.", M, y);
   doc.text("Paiement par virement bancaire ou en especes.", M, y + 7);
 
-  // PAGE 10 : CONCLUSION
+  /* ================================================================ */
+  /*  PAGE 10 : CONCLUSION                                             */
+  /* ================================================================ */
   doc.addPage();
   doc.setFillColor(10, 22, 40);
   doc.rect(0, 0, W, H, "F");
@@ -663,7 +784,7 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.setTextColor(200, 200, 200);
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  const cp = conclusionParas(g.letter, score, central, recov);
+  const cp = conclusionParas(g.letter, score, central, recov, gain12);
   cp.forEach((p) => {
     const l = doc.splitTextToSize(p, CW);
     doc.text(l, M, y);
