@@ -43,10 +43,10 @@ function fmt(n: number): string {
 }
 
 const LABELS: Record<string, string> = {
-  site_web: "Visibilite",
+  site_web: "Visibilit\u00e9",
   pricing: "Prix",
-  reputation: "Reputation",
-  commissions: "Reservations directes",
+  reputation: "R\u00e9putation",
+  commissions: "R\u00e9servations directes",
 };
 
 const BENCH: Record<number, Record<string, { adr: number; booking: number; reviews: number; direct: number }>> = {
@@ -88,44 +88,44 @@ function getBench(f: FormData) {
 }
 
 function gradeInfo(g: string) {
-  if (g === "A") return { title: "Excellente performance", color: C.green, urgency: "Optimisation" };
-  if (g === "B") return { title: "Bonnes bases, potentiel inexploite", color: C.gold, urgency: "Amelioration" };
-  if (g === "C") return { title: "Lacunes significatives", color: C.terra, urgency: "Prioritaire" };
-  return { title: "Situation critique", color: C.red, urgency: "Urgent" };
+  if (g === "A") return { title: "Excellente performance", color: C.green };
+  if (g === "B") return { title: "Bonnes bases, potentiel inexploit\u00e9", color: C.gold };
+  if (g === "C") return { title: "Lacunes significatives", color: C.terra };
+  return { title: "Situation critique", color: C.red };
 }
 
 function moduleDiag(key: string, score: number, f: FormData): string {
   const s = Math.round(score);
   const b = getBench(f);
   if (key === "site_web") {
-    if (s < 30) return `Votre site web est inexistant ou inaccessible. Avec ${f.num_rooms} chambres a remplir, vos clients potentiels ne vous trouvent pas en ligne. Chaque jour sans site, vous perdez des reservations directes au profit des OTA.`;
-    if (s < 60) return `Votre site existe mais ne convertit pas assez. Les visiteurs arrivent et repartent sans reserver. Probleme de design, de vitesse, ou de parcours de reservation. Vous payez des commissions OTA evitables.`;
-    if (s < 80) return `Votre site est fonctionnel mais manque d'optimisation SEO et de conversion. Vous captez du trafic mais ne le transformez pas assez en reservations directes.`;
-    return `Votre presence en ligne est solide. Votre site convertit bien. Quelques ajustements SEO pourraient vous faire passer au niveau superieur.`;
+    if (s < 30) return `Votre site web est inexistant ou inaccessible. Avec ${f.num_rooms} chambres \u00e0 remplir, vos clients potentiels ne vous trouvent pas en ligne. Chaque jour sans site visible, vous perdez des r\u00e9servations directes au profit des OTA.`;
+    if (s < 60) return `Votre site existe mais les indicateurs sugg\u00e8rent un potentiel de conversion sous-exploit\u00e9. Des am\u00e9liorations de design, de vitesse ou de parcours de r\u00e9servation pourraient r\u00e9duire votre d\u00e9pendance aux OTA.`;
+    if (s < 80) return `Votre site est fonctionnel et les indicateurs disponibles sugg\u00e8rent un bon potentiel. Une optimisation SEO et du parcours de r\u00e9servation pourrait augmenter vos r\u00e9servations directes.`;
+    return `Votre visibilit\u00e9 digitale est solide. Les indicateurs sugg\u00e8rent un bon positionnement. Quelques ajustements SEO pourraient renforcer votre avantage.`;
   }
   if (key === "pricing") {
-    if (s < 30) return `Vos tarifs sont deconnectes du marche. ADR de ${f.current_price_mad} MAD contre une mediane de ${b.adr} MAD pour les ${f.stars} etoiles a ${f.city}. Vous etes soit trop cher sans justification, soit trop bas et vous bradez vos chambres.`;
-    if (s < 60) return `Votre pricing manque de flexibilite. Vous appliquez probablement un tarif fixe toute l'annee alors que la demande a ${f.city} varie fortement. Vous perdez du CA en haute saison et des clients en basse saison.`;
-    if (s < 80) return `Votre strategie tarifaire est correcte. ADR de ${f.current_price_mad} MAD proche de la mediane (${b.adr} MAD). Un revenue management dynamique pourrait augmenter votre RevPAR de 10 a 20%.`;
-    return `Votre strategie tarifaire est coherente. ADR de ${f.current_price_mad} MAD bien positionne. Affinez vos tarifs evenements et last-minute pour maximiser le RevPAR.`;
+    if (s < 30) return `Vos tarifs semblent d\u00e9connect\u00e9s du march\u00e9. ADR de ${f.current_price_mad} MAD contre une m\u00e9diane de ${b.adr} MAD pour les ${f.stars} \u00e9toiles \u00e0 ${f.city}. Un \u00e9cart important dans un sens ou dans l'autre signale un potentiel d'optimisation.`;
+    if (s < 60) return `Votre pricing manque probablement de flexibilit\u00e9. La demande \u00e0 ${f.city} varie fortement entre haute et basse saison. Un calendrier tarifaire dynamique pourrait am\u00e9liorer votre RevPAR.`;
+    if (s < 80) return `Votre strat\u00e9gie tarifaire est coh\u00e9rente. ADR de ${f.current_price_mad} MAD proche de la m\u00e9diane (${b.adr} MAD). Un revenue management dynamique pourrait augmenter votre RevPAR de 10 \u00e0 20%.`;
+    return `Votre strat\u00e9gie tarifaire est bien positionn\u00e9e. ADR de ${f.current_price_mad} MAD coh\u00e9rent avec le march\u00e9. Affinez vos tarifs \u00e9v\u00e9nements et last-minute pour maximiser le RevPAR.`;
   }
   if (key === "reputation") {
-    if (s < 30) return `Votre e-reputation est en danger. ${f.booking_reviews} avis Booking, note de ${f.booking_score}/10. Les voyageurs filtrent par note : en dessous de 8.0, vous etes invisible pour la majorite des recherches.`;
-    if (s < 60) return `Vos avis sont corrects mais perfectibles. ${f.booking_reviews} avis sur Booking, note de ${f.booking_score}/10. Vous etes dans la moyenne. Il faut passer au-dessus de 8.5 pour declencher le coup de coeur.`;
-    if (s < 80) return `Votre reputation est bonne. ${f.booking_reviews} avis, note de ${f.booking_score}/10. Au-dessus de la mediane. Continuez a solliciter des avis post-sejour et repondez a 100% des commentaires.`;
-    return `Vos clients vous adorent. ${f.booking_reviews} avis, note de ${f.booking_score}/10. Vous faites partie du top des ${f.stars} etoiles a ${f.city}. Votre reputation est un avantage concurrentiel majeur.`;
+    if (s < 30) return `Votre e-r\u00e9putation n\u00e9cessite une attention urgente. ${f.booking_reviews} avis Booking, note de ${f.booking_score}/10. Les voyageurs filtrent par note : en dessous de 8.0, la visibilit\u00e9 dans les r\u00e9sultats de recherche diminue fortement.`;
+    if (s < 60) return `Vos avis sont corrects mais perfectibles. ${f.booking_reviews} avis sur Booking, note de ${f.booking_score}/10. Vous \u00eates dans la moyenne. Passer au-dessus de 8.5 pourrait d\u00e9clencher un effet de pr\u00e9f\u00e9rence.`;
+    if (s < 80) return `Votre r\u00e9putation est bonne. ${f.booking_reviews} avis, note de ${f.booking_score}/10, au-dessus de la m\u00e9diane. Continuez \u00e0 solliciter des avis post-s\u00e9jour et \u00e0 r\u00e9pondre \u00e0 100% des commentaires.`;
+    return `Votre r\u00e9putation en ligne est excellente. ${f.booking_reviews} avis, note de ${f.booking_score}/10. Vous faites partie du haut du classement des ${f.stars} \u00e9toiles \u00e0 ${f.city}. L'enjeu est maintenant de consolider cet avantage.`;
   }
   if (key === "commissions") {
-    if (f.direct_percent < 10) return `Vous dependez massivement des OTA. ${f.booking_percent}% Booking + ${f.airbnb_percent}% Airbnb + ${f.expedia_percent}% Expedia = seulement ${f.direct_percent}% en direct. Vous versez des milliers de MAD de commissions evitables chaque annee.`;
-    if (f.direct_percent < 20) return `Vous commencez a capter du direct (${f.direct_percent}%) mais les OTA dominent encore votre mix. Un site optimise + WhatsApp peut basculer 10-15% du volume en direct.`;
-    if (f.direct_percent < 30) return `Votre mix s'equilibre. ${f.direct_percent}% de direct, proche de la moyenne a ${f.city}. Continuez a investir : email, fidelisation, offres exclusives site web.`;
-    return `Votre mix est excellent. ${f.direct_percent}% de direct pour ${f.num_rooms} chambres, vous maitrisez vos couts d'acquisition. Maintenez cette dynamique.`;
+    if (f.direct_percent < 10) return `Vous d\u00e9pendez massivement des OTA. ${f.booking_percent}% Booking + ${f.airbnb_percent}% Airbnb + ${f.expedia_percent}% Expedia = seulement ${f.direct_percent}% en direct. Une part significative de votre CA part en commissions.`;
+    if (f.direct_percent < 20) return `Vous commencez \u00e0 capter du direct (${f.direct_percent}%) mais les OTA dominent encore votre mix. Un site optimis\u00e9 + WhatsApp pourrait basculer 10-15% du volume en direct.`;
+    if (f.direct_percent < 30) return `Votre mix s'\u00e9quilibre. ${f.direct_percent}% de direct, proche de la m\u00e9diane \u00e0 ${f.city}. Continuez \u00e0 investir : email, fid\u00e9lisation, offres exclusives site web.`;
+    return `Votre mix est excellent. ${f.direct_percent}% de direct pour ${f.num_rooms} chambres. Vous ma\u00eetrisez vos co\u00fbts d'acquisition. Maintenez cette dynamique.`;
   }
   return "";
 }
 
 function getActions(data: GlobalAuditResponse, f: FormData) {
-  const items: { module: string; action: string; impact: string; effort: string; delai: string; score: number }[] = [];
+  const items: { pri: string; module: string; action: string; impact: string; effort: string; delai: string; score: number }[] = [];
   const subs = data.sub_scores || {};
   const b = getBench(f);
   const ca = f.annual_revenue_mad || 0;
@@ -135,24 +135,24 @@ function getActions(data: GlobalAuditResponse, f: FormData) {
     const label = LABELS[key] || key;
 
     if (key === "site_web") {
-      if (s < 30) items.push({ module: label, action: "Creer un site one-page avec moteur de reservation (Mews, Cloudbeds)", impact: `+${fmt(ca * 0.08)} MAD`, effort: "Moyen", delai: "30j", score: s });
-      else if (s < 60) items.push({ module: label, action: "Ajouter bouton Reserver + photos HD + page tarifs claire", impact: `+${fmt(ca * 0.05)} MAD`, effort: "Faible", delai: "15j", score: s });
-      else items.push({ module: label, action: `Optimiser SEO local (Google Business + mots-cles '${f.city} riad')`, impact: `+${fmt(ca * 0.03)} MAD`, effort: "Faible", delai: "30j", score: s });
+      if (s < 30) items.push({ pri: "P1", module: label, action: "Cr\u00e9er un site one-page avec moteur de r\u00e9servation (Mews, Cloudbeds)", impact: `+${fmt(ca * 0.08)} MAD`, effort: "Moyen", delai: "30j", score: s });
+      else if (s < 60) items.push({ pri: "P2", module: label, action: "Ajouter bouton R\u00e9server + photos HD + page tarifs claire", impact: `+${fmt(ca * 0.05)} MAD`, effort: "Faible", delai: "15j", score: s });
+      else items.push({ pri: "P3", module: label, action: `Optimiser SEO local (Google Business + mots-cl\u00e9s '${f.city} riad')`, impact: `+${fmt(ca * 0.03)} MAD`, effort: "Faible", delai: "30j", score: s });
     }
     if (key === "pricing") {
-      if (s < 30) items.push({ module: label, action: `Realigner ADR sur mediane ${b.adr} MAD + creer 3 saisons tarifaires`, impact: `+${fmt(ca * 0.12)} MAD`, effort: "Moyen", delai: "15j", score: s });
-      else if (s < 60) items.push({ module: label, action: "Calendrier dynamique : haute/basse/shoulder + tarifs evenements", impact: `+${fmt(ca * 0.08)} MAD`, effort: "Moyen", delai: "30j", score: s });
-      else items.push({ module: label, action: "Offres last-minute et early-bird pour lisser l'occupation", impact: `+${fmt(ca * 0.04)} MAD`, effort: "Faible", delai: "15j", score: s });
+      if (s < 30) items.push({ pri: "P1", module: label, action: `R\u00e9aligner ADR sur m\u00e9diane ${b.adr} MAD + cr\u00e9er 3 saisons tarifaires`, impact: `+${fmt(ca * 0.12)} MAD`, effort: "Moyen", delai: "15j", score: s });
+      else if (s < 60) items.push({ pri: "P1", module: label, action: "Calendrier dynamique : haute/basse/shoulder + tarifs \u00e9v\u00e9nements", impact: `+${fmt(ca * 0.08)} MAD`, effort: "Moyen", delai: "30j", score: s });
+      else items.push({ pri: "P3", module: label, action: "Offres last-minute et early-bird pour lisser l'occupation", impact: `+${fmt(ca * 0.04)} MAD`, effort: "Faible", delai: "15j", score: s });
     }
     if (key === "reputation") {
-      if (s < 30) items.push({ module: label, action: "Systeme collecte avis post-sejour (WhatsApp + email J+1)", impact: `+${fmt(ca * 0.06)} MAD`, effort: "Faible", delai: "15j", score: s });
-      else if (s < 60) items.push({ module: label, action: "Repondre 100% des avis en 24h + resoudre 3 plaintes recurrentes", impact: `+${fmt(ca * 0.04)} MAD`, effort: "Faible", delai: "30j", score: s });
-      else items.push({ module: label, action: "Page 'Ils parlent de nous' sur le site + inciter avis Google", impact: `+${fmt(ca * 0.02)} MAD`, effort: "Faible", delai: "15j", score: s });
+      if (s < 30) items.push({ pri: "P1", module: label, action: "Syst\u00e8me collecte avis post-s\u00e9jour (WhatsApp + email J+1)", impact: `+${fmt(ca * 0.06)} MAD`, effort: "Faible", delai: "15j", score: s });
+      else if (s < 60) items.push({ pri: "P2", module: label, action: "R\u00e9pondre 100% des avis en 24h + r\u00e9soudre 3 plaintes r\u00e9currentes", impact: `+${fmt(ca * 0.04)} MAD`, effort: "Faible", delai: "30j", score: s });
+      else items.push({ pri: "P4", module: label, action: "Consolider : publier les meilleurs avis sur le site + diversifier Google", impact: `+${fmt(ca * 0.02)} MAD`, effort: "Faible", delai: "15j", score: s });
     }
     if (key === "commissions") {
-      if (s < 30) items.push({ module: label, action: "WhatsApp Business + offre exclusive '-10% en direct'", impact: `+${fmt(ca * 0.10)} MAD`, effort: "Faible", delai: "7j", score: s });
-      else if (s < 60) items.push({ module: label, action: "Programme fidelisation email + offre retour clients", impact: `+${fmt(ca * 0.06)} MAD`, effort: "Moyen", delai: "30j", score: s });
-      else items.push({ module: label, action: "Negocier commissions OTA (volume > 500 nuits = levier)", impact: `+${fmt(ca * 0.03)} MAD`, effort: "Moyen", delai: "60j", score: s });
+      if (s < 30) items.push({ pri: "P1", module: label, action: "WhatsApp Business + offre exclusive '-10% en direct'", impact: `+${fmt(ca * 0.10)} MAD`, effort: "Faible", delai: "7j", score: s });
+      else if (s < 60) items.push({ pri: "P2", module: label, action: "Programme fid\u00e9lisation email + offre retour clients", impact: `+${fmt(ca * 0.06)} MAD`, effort: "Moyen", delai: "30j", score: s });
+      else items.push({ pri: "P3", module: label, action: "N\u00e9gocier commissions OTA (volume > 500 nuits = levier)", impact: `+${fmt(ca * 0.03)} MAD`, effort: "Moyen", delai: "60j", score: s });
     }
   }
 
@@ -160,7 +160,7 @@ function getActions(data: GlobalAuditResponse, f: FormData) {
   return items.slice(0, 5);
 }
 
-function conclusionParas(data: GlobalAuditResponse, f: FormData): string[] {
+function conclusionParas(data: GlobalAuditResponse, f: FormData, gain12: number): string[] {
   const g = data.grade || "C";
   const loss = data.total_annual_loss_mad || 0;
   const score = data.global_score || 0;
@@ -169,27 +169,27 @@ function conclusionParas(data: GlobalAuditResponse, f: FormData): string[] {
 
   if (g === "A") return [
     `${f.riad_name} fait partie des riads les plus performants de ${f.city} avec un score de ${score}/100.`,
-    `Votre perte potentielle est limitee a ${fmt(loss)} MAD/an, bien en dessous de la moyenne.`,
-    `Notre accompagnement vous fera passer de 'tres bon' a 'reference du marche' en optimisant les derniers details.`,
-    `Prochaine etape : un appel de 15 minutes pour identifier les 2-3 leviers restants.`,
+    `L'opportunit\u00e9 annuelle estim\u00e9e est de ${fmt(loss)} MAD, bien en dessous de la moyenne du secteur.`,
+    `Notre accompagnement vous fera passer de \u00ab tr\u00e8s bon \u00bb \u00e0 \u00ab r\u00e9f\u00e9rence du march\u00e9 \u00bb en optimisant les derniers d\u00e9tails.`,
+    `Prochaine \u00e9tape : un appel de 15 minutes pour identifier les 2-3 leviers restants.`,
   ];
   if (g === "B") return [
-    `${f.riad_name} a de bonnes bases mais laisse filer ${fmt(loss)} MAD par an en opportunites non saisies.`,
-    `Avec un score de ${score}/100, vous etes au-dessus de la moyenne mais loin du potentiel reel de votre etablissement.`,
-    `En 90 jours, nos clients dans votre situation recuperent en moyenne 25 a 40% de cette perte.`,
-    `Prochaine etape : un audit video personnalise de 3 minutes pour voir exactement ou agir.`,
+    `${f.riad_name} a de bonnes bases mais laisse filer environ ${fmt(loss)} MAD par an en opportunit\u00e9s non saisies.`,
+    `Avec un score de ${score}/100, vous \u00eates au-dessus de la moyenne mais loin du potentiel r\u00e9el de votre \u00e9tablissement.`,
+    `Selon les cas accompagn\u00e9s, une r\u00e9cup\u00e9ration de 25 \u00e0 40% de cette opportunit\u00e9 est envisageable en 90 jours, sous r\u00e9serve de l'ex\u00e9cution des recommandations.`,
+    `Prochaine \u00e9tape : un audit vid\u00e9o personnalis\u00e9 de 3 minutes pour voir exactement o\u00f9 agir.`,
   ];
   if (g === "C") return [
-    `${f.riad_name} sous-performe. ${fmt(loss)} MAD de perte annuelle, soit ${fmt(loss / 12)} MAD/mois en commissions evitables et chambres vides.`,
-    `La bonne nouvelle : ${fmt(loss * 0.7)} MAD de cette perte est recuperable avec des actions concretes en 6 mois.`,
-    `Nos clients qui demarrent avec un score similaire atteignent +25 points en 90 jours.`,
-    `Prochaine etape : un diagnostic complet avec plan d'action personnalise.`,
+    `${f.riad_name} sous-performe par rapport \u00e0 ses concurrents directs. L'opportunit\u00e9 annuelle est estim\u00e9e \u00e0 ${fmt(loss)} MAD, soit environ ${fmt(loss / 12)} MAD/mois.`,
+    `La bonne nouvelle : une part significative de cette opportunit\u00e9 est r\u00e9cup\u00e9rable avec des actions concr\u00e8tes en 6 mois.`,
+    `Selon les cas accompagn\u00e9s, une progression de +20 \u00e0 +30 points est envisageable en 90 jours, sous r\u00e9serve de l'ex\u00e9cution du plan d'action.`,
+    `Prochaine \u00e9tape : un diagnostic complet avec plan d'action personnalis\u00e9.`,
   ];
   return [
-    `${f.riad_name} est en urgence digitale. ${fmt(loss)} MAD de perte sur un CA de ${fmt(ca)} MAD, c'est ${pct}% de votre chiffre d'affaires qui s'evapore.`,
-    `Chaque mois sans action, vous perdez ${fmt(loss / 12)} MAD.`,
-    `La situation est reversible : ${fmt(loss * 0.7)} MAD recuperables en 12 mois avec un accompagnement structure.`,
-    `Prochaine etape : un appel prioritaire cette semaine pour stopper l'hemorragie.`,
+    `${f.riad_name} est en urgence digitale. L'opportunit\u00e9 annuelle est estim\u00e9e \u00e0 ${fmt(loss)} MAD sur un CA de ${fmt(ca)} MAD, soit ${pct}% de votre chiffre d'affaires.`,
+    `Chaque mois sans action repr\u00e9sente environ ${fmt(loss / 12)} MAD de revenu potentiel non capt\u00e9.`,
+    `La situation est r\u00e9versible. Avec un accompagnement structur\u00e9, une r\u00e9cup\u00e9ration significative est envisageable en 12 mois.`,
+    `Prochaine \u00e9tape : un appel prioritaire cette semaine pour \u00e9tablir un plan d'action imm\u00e9diat.`,
   ];
 }
 
@@ -204,6 +204,18 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   const lossEur = data.total_annual_loss_eur || 0;
   const score = data.global_score || 0;
   const subs = data.sub_scores || {};
+
+  const perteTheorique = ca > 0 ? Math.round(ca * (1 - score / 100)) : loss;
+  const facteur = perteTheorique > 0 ? Math.round((loss / perteTheorique) * 1000) / 10 : 100;
+  const fourchetteBasse = Math.round(perteTheorique * 0.70);
+  const fourchetteHaute = perteTheorique;
+
+  const recov = Math.round(loss * 0.70);
+  const gain3 = Math.round(recov * 0.25);
+  const gain6 = Math.round(recov * 0.55);
+  const gain12 = Math.round(recov * 0.85);
+  const residuel90 = loss - gain3;
+  const residuel12 = loss - gain12;
 
   function bg() {
     doc.setFillColor(...C.bg);
@@ -246,7 +258,7 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   doc.setFontSize(13);
   doc.setTextColor(...C.muted);
   doc.setFont("helvetica", "normal");
-  doc.text(`${form.city}  |  ${form.stars} etoiles  |  ${form.num_rooms} chambres`, 20, 92);
+  doc.text(`${form.city}  |  ${form.stars} \u00e9toiles  |  ${form.num_rooms} chambres`, 20, 92);
 
   doc.setFontSize(16);
   doc.setTextColor(...gi.color);
@@ -266,24 +278,25 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
 
   doc.setFillColor(...C.surface);
   doc.roundedRect(110, 135, 80, 38, 4, 4, "F");
-  doc.setFontSize(18);
+  doc.setFontSize(14);
   doc.setTextColor(...C.red);
   doc.setFont("helvetica", "bold");
-  doc.text(`-${fmt(loss)} MAD`, 118, 155);
+  doc.text(`${fmt(fourchetteBasse)} - ${fmt(fourchetteHaute)}`, 118, 152);
   doc.setFontSize(9);
   doc.setTextColor(...C.muted);
   doc.setFont("helvetica", "normal");
-  doc.text("Perte annuelle estimee", 118, 167);
+  doc.text("MAD/an", 118, 159);
+  doc.text("Opportunit\u00e9 annuelle estim\u00e9e", 118, 167);
 
   doc.setFontSize(9);
   doc.setTextColor(...C.muted);
-  doc.text(`Rapport genere le ${new Date().toLocaleDateString("fr-FR")}`, 20, 272);
-  doc.text("RiadPulse - Audit Digital pour Riads et Hotels Independants au Maroc", 20, 280);
+  doc.text(`Rapport g\u00e9n\u00e9r\u00e9 le ${new Date().toLocaleDateString("fr-FR")}`, 20, 272);
+  doc.text("RiadPulse - Audit Digital pour Riads et H\u00f4tels Ind\u00e9pendants au Maroc", 20, 280);
 
   // ── PAGE 2 : RESUME ──
   doc.addPage();
   bg();
-  header("Resume Executif", `${form.riad_name} - ${form.city} - Score ${score}/100 (${data.grade})`);
+  header("R\u00e9sum\u00e9 Ex\u00e9cutif", `${form.riad_name} - ${form.city} - Score ${score}/100 (${data.grade})`);
 
   let y = 48;
   for (const [key, sub] of Object.entries(subs)) {
@@ -323,52 +336,65 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...C.light);
-  const impactText = ca > 0
-    ? `Sur un CA de ${fmt(ca)} MAD, votre score de ${score}/100 genere une perte de ${fmt(loss)} MAD/an (${fmt(lossEur)} EUR). Cela represente ${Math.round((loss / ca) * 100)}% de votre chiffre d'affaires.`
-    : `Perte estimee : ${fmt(loss)} MAD/an. Renseignez votre CA annuel pour une analyse financiere precise.`;
-  const impLines = doc.splitTextToSize(impactText, 165);
-  doc.text(impLines, 20, y);
+  let impactText = "";
+  if (ca > 0) {
+    impactText = `Opportunit\u00e9 th\u00e9orique : ${fmt(perteTheorique)} MAD/an (CA x (1 - score/100)).`;
+    impactText += ` Facteur d'ajustement appliqu\u00e9 : ${facteur}%.`;
+    impactText += ` Opportunit\u00e9 annuelle estim\u00e9e : ${fmt(fourchetteBasse)} \u00e0 ${fmt(fourchetteHaute)} MAD (estimation centrale : ${fmt(loss)} MAD, soit ${fmt(lossEur)} EUR).`;
+    impactText += ` Cela repr\u00e9sente environ ${Math.round((loss / ca) * 100)}% de votre chiffre d'affaires.`;
+  } else {
+    impactText = `Opportunit\u00e9 estim\u00e9e : ${fmt(loss)} MAD/an. Renseignez votre CA annuel pour une analyse financi\u00e8re pr\u00e9cise.`;
+  }
+  doc.text(doc.splitTextToSize(impactText, 165), 20, y);
 
   // ── PAGE 3 : METHODOLOGIE ──
   doc.addPage();
   bg();
-  header("Methodologie et Sources");
+  header("M\u00e9thodologie et Sources");
 
   const metho = [
-    "Cet audit est genere a partir de vos donnees et de benchmarks sectoriels verifies.",
+    "Cet audit est g\u00e9n\u00e9r\u00e9 \u00e0 partir de vos donn\u00e9es et de benchmarks sectoriels.",
     "",
-    "Sources :",
-    "- Observatoire du Tourisme Maroc 2023-2024 (ADR, RevPAR, occupation)",
-    "- Agregation Booking / TripAdvisor / Google (notes et avis)",
-    "- Commissions : Booking 18%, Airbnb 15%, Expedia 20% (standards 2024)",
+    "Niveau de confiance : Moyen",
+    "L'analyse repose sur des donn\u00e9es d\u00e9clar\u00e9es, des benchmarks publics et des",
+    "hypoth\u00e8ses de commission. Les r\u00e9sultats financiers sont des estimations",
+    "indicatives et ne constituent pas une pr\u00e9vision garantie.",
+    "",
+    "Donn\u00e9es d\u00e9clar\u00e9es par l'\u00e9tablissement :",
+    "- CA annuel, taux d'occupation, ADR, nombre de chambres",
+    "- Notes et volumes d'avis (Booking, TripAdvisor, Google)",
+    "- R\u00e9partition des canaux de r\u00e9servation",
+    "",
+    "Donn\u00e9es observ\u00e9es automatiquement :",
+    "- Accessibilit\u00e9 et technologie du site web (audit HTTP)",
+    "",
+    "Benchmarks et hypoth\u00e8ses :",
+    "- M\u00e9dianes par ville et \u00e9toiles : Observatoire du Tourisme Maroc 2024-2025",
+    "- Taux de commission utilis\u00e9s dans la simulation : Booking 18%, Airbnb 15%,",
+    "  Expedia 20%. Ces taux sont des hypoth\u00e8ses et peuvent varier selon le",
+    "  contrat, le programme partenaire et les options activ\u00e9es.",
     "- Taux de change : 1 EUR = 10.8 MAD",
     "",
-    "Scoring :",
-    "- 4 axes : Visibilite, Prix, Reputation, Reservations directes",
-    "- Chaque axe note sur 100 vs medianes locales par etoiles",
-    "- Score global = moyenne ponderee",
-    "- Perte = CA x (1 - score/100) x facteur recuperation",
-    "",
-    "Limites :",
-    "- Donnees basees sur vos declarations",
-    "- Benchmarks = medianes, votre cas peut varier",
-    "- La perte est une estimation, pas un bilan comptable",
+    "Marge d'incertitude :",
+    "- Les r\u00e9sultats financiers sont estim\u00e9s \u00e0 +/- 20-30% pr\u00e8s",
+    "- Les benchmarks sont des m\u00e9dianes : votre situation peut varier",
+    "- Cet audit ne remplace pas une analyse comptable approfondie",
   ];
 
-  y = 45;
+  y = 42;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...C.light);
   for (const line of metho) {
     if (!line) { y += 3; continue; }
     doc.text(line, 20, y);
-    y += 5.5;
+    y += 5.2;
   }
 
   // ── PAGE 4 : BENCHMARK ──
   doc.addPage();
   bg();
-  header("Benchmark Local", `Comparaison avec les ${form.stars} etoiles de ${form.city}`);
+  header("Benchmark Local", `Comparaison avec les ${form.stars} \u00e9toiles de ${form.city}`);
 
   const adrDiff = form.current_price_mad - b.adr;
   const adrPct = b.adr > 0 ? Math.round((adrDiff / b.adr) * 100) : 0;
@@ -377,8 +403,8 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   const dirDiff = form.direct_percent - b.direct;
 
   const benchRows = [
-    ["Indicateur", "Votre riad", `Mediane ${form.stars} etoiles`, "Ecart"],
-    ["ADR (MAD/nuit)", `${form.current_price_mad}`, `${b.adr}`, `${adrDiff >= 0 ? "+" : ""}${adrPct}%`],
+    ["Indicateur", "Votre riad", `M\u00e9diane ${form.stars}\u2605`, "\u00c9cart"],
+    ["ADR (MAD/nuit)", `${fmt(form.current_price_mad)}`, `${fmt(b.adr)}`, `${adrDiff >= 0 ? "+" : ""}${adrPct}%`],
     ["Note Booking", `${form.booking_score}/10`, `${b.booking}/10`, `${Number(noteDiff) >= 0 ? "+" : ""}${noteDiff}`],
     ["Avis Booking", `${form.booking_reviews}`, `${b.reviews}`, `${revDiff >= 0 ? "+" : ""}${revDiff}`],
     ["% Direct", `${form.direct_percent}%`, `${b.direct}%`, `${dirDiff >= 0 ? "+" : ""}${dirDiff} pts`],
@@ -393,7 +419,13 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
     alternateRowStyles: { fillColor: C.surface },
     theme: "grid",
     styles: { cellPadding: 4 },
-    margin: { left: 20, right: 20 },
+    columnStyles: {
+      0: { cellWidth: 40, fontStyle: "bold" },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 35 },
+      3: { cellWidth: 25 },
+    },
+    margin: { left: 25, right: 25 },
   });
 
   y = (doc as any).lastAutoTable.finalY + 12;
@@ -404,21 +436,21 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   y += 7;
 
   let analysis = "";
-  if (adrDiff < -100) analysis += `Votre ADR est ${Math.abs(adrDiff)} MAD sous la mediane. Vous bradez vos chambres. `;
-  else if (adrDiff > 200) analysis += `Votre ADR est ${adrDiff} MAD au-dessus. Votre reputation (${form.booking_score}/10) le justifie. `;
-  else if (adrDiff > 0) analysis += `Votre ADR est legerement au-dessus de la mediane, ce qui est coherent avec votre positionnement. `;
-  else analysis += `Votre ADR est aligne avec le marche. `;
+  if (adrDiff < -100) analysis += `Votre ADR est ${Math.abs(adrDiff)} MAD sous la m\u00e9diane. Il pourrait y avoir une marge d'augmentation. `;
+  else if (adrDiff > 200) analysis += `Votre ADR est ${adrDiff} MAD au-dessus de la m\u00e9diane. Votre r\u00e9putation (${form.booking_score}/10) semble justifier ce positionnement. `;
+  else if (adrDiff > 0) analysis += `Votre ADR est l\u00e9g\u00e8rement au-dessus de la m\u00e9diane, ce qui est coh\u00e9rent avec votre positionnement. `;
+  else analysis += `Votre ADR est align\u00e9 avec le march\u00e9. `;
 
-  if (Number(noteDiff) < -0.3) analysis += `Votre note Booking est sous la mediane. Chaque +0.1 point augmente la conversion de 3-5%. `;
-  else if (Number(noteDiff) > 0.5) analysis += `Votre note Booking depasse la mediane de ${noteDiff} points : avantage concurrentiel fort. `;
+  if (Number(noteDiff) < -0.3) analysis += `Votre note Booking est sous la m\u00e9diane. Chaque +0.1 point peut augmenter la conversion de 3-5%. `;
+  else if (Number(noteDiff) > 0.5) analysis += `Votre note Booking d\u00e9passe la m\u00e9diane de ${noteDiff} points : avantage concurrentiel significatif. `;
 
-  if (dirDiff < -10) analysis += `Votre part de direct est ${Math.abs(dirDiff)} pts sous la mediane. Vous surpayez en commissions.`;
-  else if (dirDiff > 5) analysis += `Votre part de direct est excellente pour votre categorie.`;
+  if (dirDiff < -10) analysis += `Votre part de direct est ${Math.abs(dirDiff)} pts sous la m\u00e9diane. Une optimisation du canal direct pourrait r\u00e9duire vos commissions.`;
+  else if (dirDiff > 5) analysis += `Votre part de direct est excellente pour votre cat\u00e9gorie.`;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...C.light);
-  doc.text(doc.splitTextToSize(analysis, 165), 20, y);
+  doc.text(doc.splitTextToSize(analysis, 160), 20, y);
 
   // ── PAGE 5 : COMMISSIONS ──
   doc.addPage();
@@ -430,13 +462,17 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   let ex = form.expedia_percent || 0;
   let dr = form.direct_percent || 0;
   let totalCh = bk + ab + ex + dr;
+
   if (totalCh > 0 && totalCh < 100) {
     const missing = 100 - totalCh;
     const otaTotal = bk + ab + ex;
     if (otaTotal > 0) {
-      bk += Math.round(missing * bk / otaTotal);
-      ab += Math.round(missing * ab / otaTotal);
-      ex += missing - Math.round(missing * bk / otaTotal) - Math.round(missing * ab / otaTotal);
+      const addBk = Math.round(missing * bk / otaTotal);
+      const addAb = Math.round(missing * ab / otaTotal);
+      const addEx = missing - addBk - addAb;
+      bk += addBk;
+      ab += addAb;
+      ex += addEx;
     } else {
       bk = Math.round(missing * 0.73);
       ab = Math.round(missing * 0.20);
@@ -455,16 +491,16 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     doc.setTextColor(...C.gold);
-    doc.text("Repartition des canaux non renseignee.", 20, y);
+    doc.text("R\u00e9partition des canaux non renseign\u00e9e.", 20, y);
     y += 8;
     doc.setFontSize(9);
     doc.setTextColor(...C.light);
     const avgComm = Math.round(ca * 0.55 * 0.18 + ca * 0.15 * 0.15 + ca * 0.05 * 0.2);
-    const noDataText = `Vous n'avez pas indique la repartition de vos reservations. Pour un riad ${form.stars} etoiles a ${form.city}, la repartition moyenne est : Booking 55%, Airbnb 15%, Expedia 5%, Direct 25%. Sur votre CA de ${fmt(ca)} MAD, cela representerait environ ${fmt(avgComm)} MAD de commissions OTA par an. Relancez l'audit en remplissant les champs de repartition pour un calcul precis.`;
+    const noDataText = `Vous n'avez pas indiqu\u00e9 la r\u00e9partition de vos r\u00e9servations. Pour un riad ${form.stars} \u00e9toiles \u00e0 ${form.city}, la r\u00e9partition moyenne est : Booking 55%, Airbnb 15%, Expedia 5%, Direct 25%. Sur votre CA de ${fmt(ca)} MAD, cela repr\u00e9senterait environ ${fmt(avgComm)} MAD de commissions OTA par an. Relancez l'audit en remplissant les champs de r\u00e9partition pour un calcul pr\u00e9cis.`;
     doc.text(doc.splitTextToSize(noDataText, 165), 20, y);
   } else {
     const commRows = [
-      ["Canal", "% du CA", "Revenu via canal", "Commission", "Cout annuel"],
+      ["Canal", "% du CA", "Revenu via canal", "Commission", "Co\u00fbt annuel"],
       ["Booking.com", `${bk}%`, `${fmt(ca * bk / 100)} MAD`, "18%", `${fmt(commBk)} MAD`],
       ["Airbnb", `${ab}%`, `${fmt(ca * ab / 100)} MAD`, "15%", `${fmt(commAb)} MAD`],
       ["Expedia", `${ex}%`, `${fmt(ca * ex / 100)} MAD`, "20%", `${fmt(commEx)} MAD`],
@@ -494,33 +530,38 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(...C.terra);
-    doc.text(`Vous versez ${fmt(totalComm)} MAD/an en commissions OTA`, 20, y);
+    doc.text(`Co\u00fbt estim\u00e9 des commissions OTA : ${fmt(totalComm)} MAD/an`, 20, y);
     y += 8;
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.setTextColor(...C.light);
-    const newBk = Math.round(bk * 0.7);
-    const newAb = Math.round(ab * 0.8);
-    const newEx = Math.round(ex * 0.6);
+    const newBk = Math.max(5, Math.round(bk * 0.7));
+    const newAb = Math.max(3, Math.round(ab * 0.8));
+    const newEx = Math.max(2, Math.round(ex * 0.6));
     const newDr = 100 - newBk - newAb - newEx;
     const newComm = Math.round(ca * (newBk / 100) * 0.18 + ca * (newAb / 100) * 0.15 + ca * (newEx / 100) * 0.2);
     const saving = totalComm - newComm;
 
-    const scText = `En basculant vers ${newBk}% Booking / ${newAb}% Airbnb / ${newEx}% Expedia / ${newDr}% direct, vos commissions passeraient de ${fmt(totalComm)} a ${fmt(newComm)} MAD. Economie : ${fmt(saving)} MAD/an = ${Math.round(saving / Math.max(form.current_price_mad, 1))} nuits gratuites.`;
+    const scText = `En basculant vers ${newBk}% Booking / ${newAb}% Airbnb / ${newEx}% Expedia / ${newDr}% direct, vos commissions passeraient de ${fmt(totalComm)} \u00e0 ${fmt(newComm)} MAD. \u00c9conomie potentielle : ${fmt(saving)} MAD/an, soit environ ${Math.round(saving / Math.max(form.current_price_mad, 1))} nuits gratuites.`;
     doc.text(doc.splitTextToSize(scText, 165), 20, y);
+    y += 20;
+
+    doc.setFontSize(7);
+    doc.setTextColor(...C.muted);
+    doc.text("Note : les taux de commission sont des hypoth\u00e8ses de simulation. Les taux r\u00e9els d\u00e9pendent de vos contrats OTA.", 20, y);
   }
 
   // ── PAGE 6 : PLAN D'ACTION ──
   doc.addPage();
   bg();
-  header("Plan d'Action Personnalise", `Base sur vos scores reels - ${form.riad_name}`);
+  header("Plan d'Action Personnalis\u00e9", `Bas\u00e9 sur vos scores r\u00e9els - ${form.riad_name}`);
 
   const actions = getActions(data, form);
   if (actions.length > 0) {
     const actRows = [
-      ["#", "Axe", "Action", "Impact", "Effort", "Delai"],
-      ...actions.map((a, i) => [`${i + 1}`, a.module, a.action, a.impact, a.effort, a.delai]),
+      ["Pri", "Axe", "Action", "Impact", "Effort", "D\u00e9lai"],
+      ...actions.map(a => [a.pri, a.module, a.action, a.impact, a.effort, a.delai]),
     ];
 
     autoTable(doc, {
@@ -533,36 +574,38 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
       theme: "grid",
       styles: { cellPadding: 3 },
       columnStyles: {
-        0: { cellWidth: 8, fontStyle: "bold", textColor: C.terra },
+        0: { cellWidth: 10, fontStyle: "bold", textColor: C.terra },
         1: { cellWidth: 25, fontStyle: "bold" },
-        2: { cellWidth: 65 },
+        2: { cellWidth: 62 },
         3: { cellWidth: 25, textColor: C.green },
-        4: { cellWidth: 18 },
-        5: { cellWidth: 18 },
+        4: { cellWidth: 16 },
+        5: { cellWidth: 14 },
       },
       margin: { left: 20, right: 20 },
     });
   }
 
-  y = actions.length > 0 ? (doc as any).lastAutoTable.finalY + 12 : 50;
+  y = actions.length > 0 ? (doc as any).lastAutoTable.finalY + 10 : 50;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setTextColor(...C.muted);
-  doc.text("Conseil : commencez par les 2 actions 'faciles' cette semaine. Elles representent souvent 60% du gain pour 20% de l'effort.", 20, y);
+  doc.text("Conseil : commencez par les actions P1 cette semaine. Elles repr\u00e9sentent souvent 60% du gain pour 20% de l'effort.", 20, y);
+  y += 5;
+  doc.text("Les impacts financiers sont des estimations indicatives bas\u00e9es sur votre CA et les benchmarks locaux.", 20, y);
 
   // ── PAGE 7 : 30/60/90 ──
   doc.addPage();
   bg();
-  header("Plan 30 / 60 / 90 Jours", "Feuille de route adaptee a vos faiblesses identifiees");
+  header("Plan 30 / 60 / 90 Jours", "Feuille de route adapt\u00e9e \u00e0 vos faiblesses identifi\u00e9es");
 
   const sorted = Object.entries(subs).sort((a, b) => (a[1].score || 0) - (b[1].score || 0));
-  const w1 = LABELS[sorted[0]?.[0]] || "Visibilite";
+  const w1 = LABELS[sorted[0]?.[0]] || "Visibilit\u00e9";
   const w2 = LABELS[sorted[1]?.[0]] || "Prix";
-  const w3 = LABELS[sorted[2]?.[0]] || "Reputation";
+  const w3 = LABELS[sorted[2]?.[0]] || "R\u00e9putation";
 
   const phases = [
-    { label: "JOURS 1-30", color: C.red, text: `Corriger ${w1} (score le plus faible). Objectif : +15 points. Actions immediates a fort impact, zero investissement lourd.` },
-    { label: "JOURS 31-60", color: C.gold, text: `Attaquer ${w2}. Mettre en place outils et process. Premieres mesures de resultat sur ${w1}.` },
+    { label: "JOURS 1-30", color: C.red, text: `Corriger ${w1} (score le plus faible). Objectif : +10 points. Actions imm\u00e9diates \u00e0 fort impact, sans investissement lourd.` },
+    { label: "JOURS 31-60", color: C.gold, text: `Attaquer ${w2}. Mettre en place outils et process. Premi\u00e8res mesures de r\u00e9sultat sur ${w1}.` },
     { label: "JOURS 61-90", color: C.green, text: `Optimiser ${w3} + consolider les gains. Audit de suivi pour mesurer la progression globale.` },
   ];
 
@@ -586,24 +629,27 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   }
 
   y += 5;
-  const target = Math.min(100, score + 20);
-  const targetLoss = Math.round(loss * 0.6);
+  const target90 = Math.min(100, score + 10);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(...C.white);
-  doc.text(`Objectif 90 jours : ${score}/100 vers ${target}/100. Perte : ${fmt(loss)} vers ${fmt(targetLoss)} MAD.`, 20, y);
+  doc.text(`Objectif 90 jours : ${score}/100 \u2192 ${target90}/100. Opportunit\u00e9 r\u00e9siduelle : ${fmt(residuel90)} MAD.`, 20, y);
+  y += 7;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(...C.muted);
+  doc.text("Estimation indicative, d\u00e9pendante de l'ex\u00e9cution effective des recommandations.", 20, y);
 
   // ── PAGE 8 : PROJECTION ──
   doc.addPage();
   bg();
-  header("Projection Avant / Apres", `Perte recuperable : ${fmt(loss * 0.7)} MAD`);
+  header("Projection Avant / Apr\u00e8s", `Opportunit\u00e9 r\u00e9cup\u00e9rable : ${fmt(recov)} MAD`);
 
-  const recov = loss * 0.7;
   const projRows = [
     ["Horizon", "Gain additionnel", "Nouveau CA", "Leviers"],
-    ["3 mois", `+${fmt(recov * 0.25)} MAD`, `${fmt(ca + recov * 0.25)} MAD`, "Site web, pricing, WhatsApp direct"],
-    ["6 mois", `+${fmt(recov * 0.55)} MAD`, `${fmt(ca + recov * 0.55)} MAD`, "Revenue management + reputation"],
-    ["12 mois", `+${fmt(recov * 0.85)} MAD`, `${fmt(ca + recov * 0.85)} MAD`, "Canal direct dominant, pricing dynamique"],
+    ["3 mois", `+${fmt(gain3)} MAD`, `${fmt(ca + gain3)} MAD`, "Site web, pricing, WhatsApp direct"],
+    ["6 mois", `+${fmt(gain6)} MAD`, `${fmt(ca + gain6)} MAD`, "Revenue management + r\u00e9putation"],
+    ["12 mois", `+${fmt(gain12)} MAD`, `${fmt(ca + gain12)} MAD`, "Canal direct dominant, pricing dynamique"],
   ];
 
   autoTable(doc, {
@@ -624,18 +670,23 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
     margin: { left: 20, right: 20 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 12;
-    const roiRaw = ca > 0 ? Math.round((recov * 0.85) / 1500) : 0;
-  const roiDisplay = Math.min(roiRaw, 20);
+  y = (doc as any).lastAutoTable.finalY + 10;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(...C.white);
-  doc.text(`ROI Audit Complet (1 500 MAD) : x${roiDisplay} en 12 mois`, 20, y);
+  doc.text(`Opportunit\u00e9 r\u00e9siduelle \u00e0 12 mois : ${fmt(residuel12)} MAD`, 20, y);
   y += 7;
+
+  const roiRaw = Math.round(gain12 / 1500);
+  const roiDisplay = Math.min(roiRaw, 20);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...C.light);
-  doc.text(`Pour 1 500 MAD investis, vous recuperez jusqu'a ${fmt(recov * 0.85)} MAD de revenu additionnel.`, 20, y);
+  doc.text(`Pour 1 500 MAD investis (Audit Complet), le gain potentiel \u00e0 12 mois est de ${fmt(gain12)} MAD (ROI x${roiDisplay}).`, 20, y);
+  y += 6;
+  doc.setFontSize(7);
+  doc.setTextColor(...C.muted);
+  doc.text("Projections bas\u00e9es sur l'application de 80% des actions recommand\u00e9es. R\u00e9sultats non garantis.", 20, y);
 
   // ── PAGE 9 : OFFRES ──
   doc.addPage();
@@ -643,20 +694,21 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   header("Nos Offres d'Accompagnement");
 
   const offers = [
-    { name: "Audit Flash", price: "500 MAD", desc: "Ce rapport automatise", features: "Score 100 | 4 axes | Top 5 priorites | Benchmark", color: C.muted },
-    { name: "Audit Complet + Video", price: "1 500 MAD", desc: "PDF + Loom 3 min + 1 mois suivi", features: "Tout le Flash + Video + Plan detaille + Suivi WhatsApp", color: C.terra },
-    { name: "Suivi Mensuel", price: "700 MAD/mois", desc: "Coaching continu + reporting", features: "Audit mensuel + Alertes + Pricing + Reputation", color: C.gold },
+    { name: "Audit Flash", price: "500 MAD", desc: "Diagnostic complet, score sur 100, benchmark local et 5 priorit\u00e9s d'action.", color: C.muted },
+    { name: "Audit Complet + Vid\u00e9o  (RECOMMAND\u00c9)", price: "1 500 MAD", desc: "PDF + vid\u00e9o Loom 3 min + plan d\u00e9taill\u00e9 + 1 mois de suivi WhatsApp.", color: C.terra },
+    { name: "Suivi Mensuel", price: "700 MAD/mois", desc: "Reporting mensuel, ajustement pricing, r\u00e9putation et accompagnement continu.", color: C.gold },
   ];
 
   y = 45;
   for (const o of offers) {
+    const h = o.name.includes("RECOMMAND") ? 48 : 42;
     doc.setFillColor(...C.surface);
-    doc.roundedRect(20, y, 170, 42, 3, 3, "F");
+    doc.roundedRect(20, y, 170, h, 3, 3, "F");
     doc.setFillColor(...o.color);
-    doc.roundedRect(20, y, 4, 42, 2, 2, "F");
+    doc.roundedRect(20, y, 4, h, 2, 2, "F");
 
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setTextColor(...o.color);
     doc.text(o.name, 30, y + 10);
     doc.setFontSize(14);
@@ -664,11 +716,10 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    doc.setTextColor(...C.muted);
-    doc.text(o.desc, 30, y + 18);
     doc.setTextColor(...C.light);
-    doc.text(o.features, 30, y + 28);
-    y += 50;
+    const descLines = doc.splitTextToSize(o.desc, 145);
+    doc.text(descLines, 30, y + 20);
+    y += h + 8;
   }
 
   // ── PAGE 10 : CONCLUSION ──
@@ -681,7 +732,7 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   doc.setDrawColor(...C.surface);
   doc.line(20, 38, 190, 38);
 
-  const paras = conclusionParas(data, form);
+  const paras = conclusionParas(data, form, gain12);
   y = 52;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(11);
@@ -698,14 +749,15 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(...C.white);
-  doc.text("Pret a passer a l'action ?", 45, y + 14);
+  doc.text("Pr\u00eat \u00e0 passer \u00e0 l'action ?", 45, y + 14);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
-  doc.text("Contactez-nous sur WhatsApp pour votre diagnostic personnalise", 35, y + 25);
+  doc.text("Contactez-nous sur WhatsApp pour votre diagnostic personnalis\u00e9", 35, y + 25);
 
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setTextColor(...C.muted);
-  doc.text(`RiadPulse 2026 - Rapport genere le ${new Date().toLocaleDateString("fr-FR")} pour ${form.riad_name}`, 20, 283);
+  doc.text(`RiadPulse 2026 - Rapport g\u00e9n\u00e9r\u00e9 le ${new Date().toLocaleDateString("fr-FR")} pour ${form.riad_name}`, 20, 280);
+  doc.text("Les r\u00e9sultats de cet audit sont des estimations indicatives et ne constituent pas une garantie de r\u00e9sultat.", 20, 286);
 
   doc.save(`Audit_${(form.riad_name || "Riad").replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
