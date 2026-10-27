@@ -122,16 +122,53 @@ const calcDistributionScore = (form: FormData, bench: Bench): number => {
   return Math.min(100, base + responseBonus);
 };
 
+const toScale10 = (score: number, alreadyOn10: boolean): number => {
+  if (score <= 0) return 0;
+  if (alreadyOn10) return Math.min(10, score);
+  return score <= 5 ? Math.min(10, score * 2) : Math.min(10, score);
+};
+
 const calcReputationScore = (form: FormData): number => {
-  const scores: number[] = [];
-  if (form.booking_score > 0) scores.push(form.booking_score);
-  if (form.tripadvisor_score > 0) scores.push(form.tripadvisor_score);
-  if (form.google_score > 0) scores.push(form.google_score);
-  if (scores.length === 0) return 50;
-  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-  const reviewCount = form.booking_reviews + form.tripadvisor_reviews + form.google_reviews;
+  const b10 = toScale10(form.booking_score, true);
+  const t10 = toScale10(form.tripadvisor_score, false);
+  const g10 = toScale10(form.google_score, false);
+  const br = Math.max(0, form.booking_reviews);
+  const tr = Math.max(0, form.tripadvisor_reviews);
+  const gr = Math.max(0, form.google_reviews);
+  const wSum = (b10 > 0 ? br : 0) + (t10 > 0 ? tr : 0) + (g10 > 0 ? gr : 0);
+  let avg: number;
+  if (wSum > 0) {
+    avg = ((b10 > 0 ? b10 * br : 0) + (t10 > 0 ? t10 * tr : 0) + (g10 > 0 ? g10 * gr : 0)) / wSum;
+  } else {
+    const scores: number[] = [];
+    if (b10 > 0) scores.push(b10);
+    if (t10 > 0) scores.push(t10);
+    if (g10 > 0) scores.push(g10);
+    if (scores.length === 0) return 50;
+    avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  }
+  const reviewCount = br + tr + gr;
   const volumeBonus = Math.min(10, Math.round(reviewCount / 50));
   return Math.min(100, Math.round(avg * 9 + volumeBonus));
+};
+
+const calcReputationAvg = (form: FormData): number => {
+  const b10 = toScale10(form.booking_score, true);
+  const t10 = toScale10(form.tripadvisor_score, false);
+  const g10 = toScale10(form.google_score, false);
+  const br = Math.max(0, form.booking_reviews);
+  const tr = Math.max(0, form.tripadvisor_reviews);
+  const gr = Math.max(0, form.google_reviews);
+  const wSum = (b10 > 0 ? br : 0) + (t10 > 0 ? tr : 0) + (g10 > 0 ? gr : 0);
+  if (wSum > 0) {
+    return Math.round(((b10 > 0 ? b10 * br : 0) + (t10 > 0 ? t10 * tr : 0) + (g10 > 0 ? g10 * gr : 0)) / wSum * 10) / 10;
+  }
+  const scores: number[] = [];
+  if (b10 > 0) scores.push(b10);
+  if (t10 > 0) scores.push(t10);
+  if (g10 > 0) scores.push(g10);
+  if (scores.length === 0) return 5;
+  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10;
 };
 
 const calcRevenueScore = (form: FormData): number => {

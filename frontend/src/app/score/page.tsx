@@ -330,7 +330,7 @@ export default function ScorePage() {
 
         {/* ── RÉSULTATS ── */}
         {result && (() => {
-            const recalc = recalcScore({ city, stars: Number(stars) || 3, adr: Number(price) || 0, directPct: Number(direct) || 0, responseRate: Number(responseRate) || 0, bookingScore: Number(bookingScore) || 0, taScore: Number(taScore) || 0, googleScore: Number(googleScore) || 0, totalReviews: (Number(bookingReviews) || 0) + (Number(taReviews) || 0) + (Number(googleReviews) || 0), occupancyRate: (Number(occupancy) || 60) / 100, ca: Number(revenue) || 0 });
+            const recalc = recalcScore({ city, stars: Number(stars) || 3, adr: Number(price) || 0, directPct: Number(direct) || 0, responseRate: Number(responseRate) || 0, bookingScore: Number(bookingScore) || 0, taScore: Number(taScore) || 0, googleScore: Number(googleScore) || 0, totalReviews: (Number(bookingReviews) || 0) + (Number(taReviews) || 0) + (Number(googleReviews) || 0), occupancyRate: (Number(occupancy) || 60) / 100, ca: Number(revenue) || 0, bookingReviews: Number(bookingReviews) || 0, taReviews: Number(taReviews) || 0, googleReviews: Number(googleReviews) || 0 });
             // Aligner avec le PDF : utiliser scores backend pour pricing/distribution/revenue
             const bMods = result.modules || {};
             Object.entries(bMods).forEach(([k, v]: [string, any]) => {

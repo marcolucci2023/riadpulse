@@ -33,14 +33,33 @@ export const calcDistributionScore = (directPct: number, benchDirect: number, re
   return Math.min(100, base + bonus);
 };
 
-export const calcReputationScore = (bookingScore: number, taScore: number, googleScore: number, totalReviews: number): number => {
-  const scores: number[] = [];
-  if (bookingScore > 0) scores.push(bookingScore);
-  if (taScore > 0) scores.push(taScore);
-  if (googleScore > 0) scores.push(googleScore);
-  if (scores.length === 0) return 50;
-  const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-  const volBonus = Math.min(10, Math.round(totalReviews / 50));
+export const toScale10 = (score: number, alreadyOn10: boolean): number => {
+  if (score <= 0) return 0;
+  if (alreadyOn10) return Math.min(10, score);
+  return score <= 5 ? Math.min(10, score * 2) : Math.min(10, score);
+};
+
+export const calcReputationScore = (bookingScore: number, taScore: number, googleScore: number, totalReviews: number, bookingReviews?: number, taReviews?: number, googleReviews?: number): number => {
+  const b10 = toScale10(bookingScore, true);
+  const t10 = toScale10(taScore, false);
+  const g10 = toScale10(googleScore, false);
+  const br = Math.max(0, bookingReviews ?? 0);
+  const tr = Math.max(0, taReviews ?? 0);
+  const gr = Math.max(0, googleReviews ?? 0);
+  const wSum = (b10 > 0 ? br : 0) + (t10 > 0 ? tr : 0) + (g10 > 0 ? gr : 0);
+  let avg: number;
+  if (wSum > 0) {
+    avg = ((b10 > 0 ? b10 * br : 0) + (t10 > 0 ? t10 * tr : 0) + (g10 > 0 ? g10 * gr : 0)) / wSum;
+  } else {
+    const scores: number[] = [];
+    if (b10 > 0) scores.push(b10);
+    if (t10 > 0) scores.push(t10);
+    if (g10 > 0) scores.push(g10);
+    if (scores.length === 0) return 50;
+    avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+  }
+  const vol = br + tr + gr > 0 ? br + tr + gr : totalReviews;
+  const volBonus = Math.min(10, Math.round(vol / 50));
   return Math.min(100, Math.round(avg * 9 + volBonus));
 };
 
@@ -66,12 +85,12 @@ export function recalcScore(params: {
   city: string; stars: number; adr: number; directPct: number;
   responseRate: number; bookingScore: number; taScore: number;
   googleScore: number; totalReviews: number; occupancyRate: number;
-  ca: number;
+  ca: number; bookingReviews?: number; taReviews?: number; googleReviews?: number;
 }): RecalcResult {
   const bench = getBench(params.city, params.stars);
   const pricing = calcPricingScore(params.adr, bench.adr);
   const distribution = calcDistributionScore(params.directPct, bench.direct, params.responseRate);
-  const reputation = calcReputationScore(params.bookingScore, params.taScore, params.googleScore, params.totalReviews);
+  const reputation = calcReputationScore(params.bookingScore, params.taScore, params.googleScore, params.totalReviews, params.bookingReviews, params.taReviews, params.googleReviews);
   const revenue = calcRevenueScore(params.occupancyRate);
   const score = Math.round((pricing + distribution + reputation + revenue) / 4 * 10) / 10;
   const perteTheo = Math.round(params.ca * (1 - score / 100));
