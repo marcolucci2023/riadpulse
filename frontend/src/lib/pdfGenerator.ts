@@ -189,7 +189,10 @@ const moduleDiag = (key: string, score: number, form: FormData, bench: Bench): s
     const note = " Le score Prix ne mesure pas uniquement le niveau de l'ADR. Il evalue principalement l'adaptation des tarifs a la saison, a la demande, aux evenements et au delai de reservation.";
     if (score >= 80) return "Votre ADR de " + fmt(form.current_price_mad) + " MAD est bien positionne par rapport a la mediane locale de " + fmt(bench.adr) + " MAD." + note;
     if (score >= 60) return "Votre ADR de " + fmt(form.current_price_mad) + " MAD est proche de la mediane locale de " + fmt(bench.adr) + " MAD, mais la strategie tarifaire pourrait etre affinee selon la saisonnalite." + note;
-    return "Votre ADR de " + fmt(form.current_price_mad) + " MAD s'ecarte de la mediane locale de " + fmt(bench.adr) + " MAD. Une revision de la grille tarifaire saisonniere est recommandee." + note;
+    const adrDiff = Math.abs(form.current_price_mad - bench.adr);
+    if (adrDiff < 50) return "Votre ADR de " + fmt(form.current_price_mad) + " MAD est aligne sur la mediane locale de " + fmt(bench.adr) + " MAD. La grille tarifaire saisonniere semble adaptee." + note;
+    if (form.current_price_mad > bench.adr) return "Votre ADR de " + fmt(form.current_price_mad) + " MAD est " + fmt(adrDiff) + " MAD au-dessus de la mediane locale de " + fmt(bench.adr) + " MAD. Verifiez que cet ecart est justifie par la qualite de service." + note;
+    return "Votre ADR de " + fmt(form.current_price_mad) + " MAD est " + fmt(adrDiff) + " MAD en dessous de la mediane locale de " + fmt(bench.adr) + " MAD. Une revision de la grille tarifaire saisonniere est recommandee." + note;
   }
   if (key === "distribution") {
     if (form.direct_percent < 10) return "Vous dependez fortement des OTA : seulement " + form.direct_percent + "% de vos reservations sont directes. Une part importante de votre CA peut donc etre soumise a des commissions.";
@@ -198,13 +201,9 @@ const moduleDiag = (key: string, score: number, form: FormData, bench: Bench): s
     return "Votre part de reservations directes atteint " + form.direct_percent + "%, au-dessus de la mediane locale de " + bench.direct + "%. Continuez a valoriser vos canaux directs et a maitriser vos couts d'acquisition.";
   }
     if (key === "reputation") {
-    const scores: number[] = [];
-    if (form.booking_score > 0) scores.push(form.booking_score);
-    if (form.tripadvisor_score > 0) scores.push(form.tripadvisor_score);
-    if (form.google_score > 0) scores.push(form.google_score);
-    const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    const avg = calcReputationAvg(form);
     const tot = form.booking_reviews + form.tripadvisor_reviews + form.google_reviews;
-    const platforms = scores.length + " plateforme(s) (Booking, TripAdvisor, Google)";
+    const platforms = "3 plateforme(s) (Booking, TripAdvisor, Google)";
     if (score >= 80) return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis au total) temoigne d'une bonne reputation. Maintenez ce niveau.";
     if (score >= 60) return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis au total) est correcte mais peut progresser. Un plan de reponse systematique aux avis est recommande.";
     return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis au total) est en dessous des standards. La gestion active des avis est une priorite.";
