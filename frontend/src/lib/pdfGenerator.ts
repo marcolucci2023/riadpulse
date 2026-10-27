@@ -258,12 +258,10 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   const score = Math.round(mods.reduce((s, m) => s + m.score * m.weight, 0) / totalW * 10) / 10;
   const g = grade(score);
   const ca = form.annual_revenue_mad;
+  const perteTheo = Math.round(ca * (1 - score / 100));
 
   /* --- Calculs financiers coherents --- */
-  const perteTheo = Math.round(ca * (1 - score / 100));
-  const backendLossRaw = result.loss ?? result.estimated_loss_mad ?? result.estimated_loss ?? result.potential_loss_mad ?? result.annual_loss_mad ?? perteTheo;
-  const backendLoss = perteTheo > 0 ? Math.min(Math.max(backendLossRaw, 0), perteTheo) : 0;
-  const facteur = perteTheo > 0 ? (backendLoss / perteTheo) * 100 : 100;
+  const facteur = 80;
   const central = Math.round(perteTheo * (facteur / 100));
   const fourchetteLow = Math.round(perteTheo * 0.7);
   const fourchetteHigh = perteTheo;

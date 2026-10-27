@@ -5,6 +5,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { runGlobalAudit, GlobalAuditResponse } from "@/lib/api";
 import { generatePDF } from "@/lib/pdfGenerator";
+import { recalcScore } from "@/lib/scoring";
 
 const CITIES = ["Marrakech", "Fès", "Essaouira", "Chefchaouen", "Tanger", "Rabat"];
 
@@ -119,21 +120,21 @@ export default function ScorePage() {
         city,
         stars,
         url,
-        current_price_mad: parseFloat(price) || 0,
-        num_rooms: parseInt(rooms) || 5,
-        occupancy_rate: (parseFloat(occupancy) || 60) / 100,
-        annual_revenue_mad: parseFloat(revenue) || 0,
-        booking_percent: parseFloat(booking) || 0,
-        airbnb_percent: parseFloat(airbnb) || 0,
-        expedia_percent: parseFloat(expedia) || 0,
-        direct_percent: parseFloat(direct) || 0,
-        booking_score: parseFloat(bookingScore) || 0,
-        booking_reviews: parseInt(bookingReviews) || 0,
-        tripadvisor_score: parseFloat(taScore) || 0,
-        tripadvisor_reviews: parseInt(taReviews) || 0,
-        google_score: parseFloat(googleScore) || 0,
-        google_reviews: parseInt(googleReviews) || 0,
-        response_rate_percent: parseFloat(responseRate) || 0,
+        current_price_mad: Number(price) || 0,
+        num_rooms: Number(rooms) || 5,
+        occupancy_rate: (Number(occupancy) || 60) / 100,
+        annual_revenue_mad: Number(revenue) || 0,
+        booking_percent: Number(booking) || 0,
+        airbnb_percent: Number(airbnb) || 0,
+        expedia_percent: Number(expedia) || 0,
+        direct_percent: Number(direct) || 0,
+        booking_score: Number(bookingScore) || 0,
+        booking_reviews: Number(bookingReviews) || 0,
+        tripadvisor_score: Number(taScore) || 0,
+        tripadvisor_reviews: Number(taReviews) || 0,
+        google_score: Number(googleScore) || 0,
+        google_reviews: Number(googleReviews) || 0,
+        response_rate_percent: Number(responseRate) || 0,
       });
       setResult(data);
     } catch (err: unknown) {
@@ -190,7 +191,7 @@ export default function ScorePage() {
               </div>
               <div>
                 <label className={labelClass}>Etoiles</label>
-                <select className={inputClass} value={stars} onChange={e => setStars(parseInt(e.target.value))}>
+                <select className={inputClass} value={stars} onChange={e => setStars(Number(e.target.value))}>
                   {[1, 2, 3, 4, 5].map(s => <option key={s} value={s}>{s} etoiles</option>)}
                 </select>
               </div>
@@ -335,21 +336,21 @@ export default function ScorePage() {
             <div className="bg-[#0f1d32] border border-white/[0.06] rounded-2xl p-8 text-center">
               <p className="text-xs uppercase tracking-widest text-white/30 mb-4">Score Global RiadPulse</p>
               <div className="flex items-center justify-center gap-4 mb-5">
-                <span className="text-6xl font-bold tracking-tight text-[#f4a261]">{result.global_score}</span>
+                <span className="text-6xl font-bold tracking-tight text-[#f4a261]">{recalcScore({ city, stars: Number(stars) || 3, adr: Number(price) || 0, directPct: Number(direct) || 0, responseRate: Number(responseRate) || 0, bookingScore: Number(bookingScore) || 0, taScore: Number(taScore) || 0, googleScore: Number(googleScore) || 0, totalReviews: (Number(bookingReviews) || 0) + (Number(taReviews) || 0) + (Number(googleReviews) || 0), occupancyRate: (Number(occupancy) || 60) / 100, ca: Number(revenue) || 0 }).score}</span>
                 <div className="text-left">
                   <span className="text-xl text-white/20">/100</span>
-                  <div className="mt-1"><GradeBadge grade={result.grade} /></div>
+                  <div className="mt-1"><GradeBadge grade={recalcScore({ city, stars: Number(stars) || 3, adr: Number(price) || 0, directPct: Number(direct) || 0, responseRate: Number(responseRate) || 0, bookingScore: Number(bookingScore) || 0, taScore: Number(taScore) || 0, googleScore: Number(googleScore) || 0, totalReviews: (Number(bookingReviews) || 0) + (Number(taReviews) || 0) + (Number(googleReviews) || 0), occupancyRate: (Number(occupancy) || 60) / 100, ca: Number(revenue) || 0 }).grade} /></div>
                 </div>
               </div>
 
-              {result.total_annual_loss_mad > 0 && (
+              {recalcScore({ city, stars: Number(stars) || 3, adr: Number(price) || 0, directPct: Number(direct) || 0, responseRate: Number(responseRate) || 0, bookingScore: Number(bookingScore) || 0, taScore: Number(taScore) || 0, googleScore: Number(googleScore) || 0, totalReviews: (Number(bookingReviews) || 0) + (Number(taReviews) || 0) + (Number(googleReviews) || 0), occupancyRate: (Number(occupancy) || 60) / 100, ca: Number(revenue) || 0 }).central > 0 && (
                 <div className="bg-red-500/[0.06] border border-red-500/10 rounded-xl p-4 mt-5 inline-block">
                   <div className="flex items-center gap-2 text-red-400/70 text-xs mb-1">
                     <Icon d={Icons.warning} size={14} />
                     Manque a gagner estime
                   </div>
                   <p className="text-2xl font-bold text-red-400">
-                    {result.total_annual_loss_mad.toLocaleString("fr-FR")} MAD
+                    {recalcScore({ city, stars: Number(stars) || 3, adr: Number(price) || 0, directPct: Number(direct) || 0, responseRate: Number(responseRate) || 0, bookingScore: Number(bookingScore) || 0, taScore: Number(taScore) || 0, googleScore: Number(googleScore) || 0, totalReviews: (Number(bookingReviews) || 0) + (Number(taReviews) || 0) + (Number(googleReviews) || 0), occupancyRate: (Number(occupancy) || 60) / 100, ca: Number(revenue) || 0 }).central.toLocaleString("fr-FR")} MAD
                     <span className="text-sm font-normal text-red-400/50 ml-1">/an</span>
                   </p>
                   <p className="text-red-400/40 text-xs mt-0.5">
@@ -365,7 +366,7 @@ export default function ScorePage() {
 
               <div className="mt-6">
                 <button
-                  onClick={() => generatePDF(result, { riad_name: riadName, city, stars, url, current_price_mad: parseFloat(price) || 0, num_rooms: parseInt(rooms) || 5, occupancy_rate: (parseFloat(occupancy) || 60) / 100, annual_revenue_mad: parseFloat(revenue) || 0, booking_percent: parseFloat(booking) || 0, airbnb_percent: parseFloat(airbnb) || 0, expedia_percent: parseFloat(expedia) || 0, direct_percent: parseFloat(direct) || 0, booking_score: parseFloat(bookingScore) || 0, booking_reviews: parseInt(bookingReviews) || 0, tripadvisor_score: parseFloat(taScore) || 0, tripadvisor_reviews: parseInt(taReviews) || 0, google_score: parseFloat(googleScore) || 0, google_reviews: parseInt(googleReviews) || 0, response_rate_percent: parseFloat(responseRate) || 0 })}
+                  onClick={() => generatePDF(result, { riad_name: riadName, city, stars, url, current_price_mad: Number(price) || 0, num_rooms: Number(rooms) || 5, occupancy_rate: (Number(occupancy) || 60) / 100, annual_revenue_mad: Number(revenue) || 0, booking_percent: Number(booking) || 0, airbnb_percent: Number(airbnb) || 0, expedia_percent: Number(expedia) || 0, direct_percent: Number(direct) || 0, booking_score: Number(bookingScore) || 0, booking_reviews: Number(bookingReviews) || 0, tripadvisor_score: Number(taScore) || 0, tripadvisor_reviews: Number(taReviews) || 0, google_score: Number(googleScore) || 0, google_reviews: Number(googleReviews) || 0, response_rate_percent: Number(responseRate) || 0 })}
                   className="bg-[#f4a261] hover:bg-[#e0934f] text-[#0a1628] font-semibold py-2.5 px-5 rounded-lg transition inline-flex items-center gap-2 text-sm cursor-pointer"
                 >
                   <Icon d={Icons.download} size={16} />
