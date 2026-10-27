@@ -425,11 +425,25 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   bg();
   header("Calculateur Commissions OTA", `CA annuel : ${fmt(ca)} MAD`);
 
-  const bk = form.booking_percent || 0;
-  const ab = form.airbnb_percent || 0;
-  const ex = form.expedia_percent || 0;
-  const dr = form.direct_percent || 0;
-  const totalCh = bk + ab + ex + dr;
+  let bk = form.booking_percent || 0;
+  let ab = form.airbnb_percent || 0;
+  let ex = form.expedia_percent || 0;
+  let dr = form.direct_percent || 0;
+  let totalCh = bk + ab + ex + dr;
+  if (totalCh > 0 && totalCh < 100) {
+    const missing = 100 - totalCh;
+    const otaTotal = bk + ab + ex;
+    if (otaTotal > 0) {
+      bk += Math.round(missing * bk / otaTotal);
+      ab += Math.round(missing * ab / otaTotal);
+      ex += missing - Math.round(missing * bk / otaTotal) - Math.round(missing * ab / otaTotal);
+    } else {
+      bk = Math.round(missing * 0.73);
+      ab = Math.round(missing * 0.20);
+      ex = missing - bk - ab;
+    }
+    totalCh = 100;
+  }
 
   const commBk = Math.round(ca * (bk / 100) * 0.18);
   const commAb = Math.round(ca * (ab / 100) * 0.15);
@@ -611,16 +625,17 @@ export function generatePDF(data: GlobalAuditResponse, form: FormData) {
   });
 
   y = (doc as any).lastAutoTable.finalY + 12;
-  const roi = ca > 0 ? Math.round((recov * 0.85) / 1500) : 0;
+    const roiRaw = ca > 0 ? Math.round((recov * 0.85) / 1500) : 0;
+  const roiDisplay = Math.min(roiRaw, 20);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(10);
   doc.setTextColor(...C.white);
-  doc.text(`ROI Audit Complet (1 500 MAD) : x${roi} en 12 mois`, 20, y);
+  doc.text(`ROI Audit Complet (1 500 MAD) : x${roiDisplay} en 12 mois`, 20, y);
   y += 7;
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...C.light);
-  doc.text(`Pour chaque dirham investi, vous recuperez ${roi} MAD de revenu additionnel.`, 20, y);
+  doc.text(`Pour 1 500 MAD investis, vous recuperez jusqu'a ${fmt(recov * 0.85)} MAD de revenu additionnel.`, 20, y);
 
   // ── PAGE 9 : OFFRES ──
   doc.addPage();
