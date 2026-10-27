@@ -160,17 +160,17 @@ const moduleDiag = (key: string, score: number, form: FormData, bench: Bench): s
     if (form.direct_percent === bench.direct) return "Votre part de reservations directes atteint " + form.direct_percent + "%, au niveau de la mediane locale. Continuez a developper l'email, la fidelisation et les offres exclusives.";
     return "Votre part de reservations directes atteint " + form.direct_percent + "%, au-dessus de la mediane locale de " + bench.direct + "%. Continuez a valoriser vos canaux directs et a maitriser vos couts d'acquisition.";
   }
-  if (key === "reputation") {
+    if (key === "reputation") {
     const scores: number[] = [];
     if (form.booking_score > 0) scores.push(form.booking_score);
     if (form.tripadvisor_score > 0) scores.push(form.tripadvisor_score);
     if (form.google_score > 0) scores.push(form.google_score);
     const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
     const tot = form.booking_reviews + form.tripadvisor_reviews + form.google_reviews;
-    const platforms = scores.length + " plateforme(s)";
-    if (score >= 80) return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis) temoigne d'une bonne reputation. Maintenez ce niveau.";
-    if (score >= 60) return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis) est correcte mais peut progresser. Un plan de reponse systematique aux avis est recommande.";
-    return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis) est en dessous des standards. La gestion active des avis est une priorite.";
+    const platforms = scores.length + " plateforme(s) (Booking, TripAdvisor, Google)";
+    if (score >= 80) return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis au total) temoigne d'une bonne reputation. Maintenez ce niveau.";
+    if (score >= 60) return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis au total) est correcte mais peut progresser. Un plan de reponse systematique aux avis est recommande.";
+    return "Votre note moyenne de " + avg.toFixed(1) + "/10 sur " + platforms + " (" + fmt(tot) + " avis au total) est en dessous des standards. La gestion active des avis est une priorite.";
   }
   if (key === "revenue") {
     const occ = Math.round(form.occupancy_rate * 100);
@@ -433,7 +433,7 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     "",
     "Le score global est calcule comme la moyenne ponderee des 4 modules affiches (Prix, Distribution, Reputation, Revenus). Les donnees declarees n'ont pas ete verifiees de maniere independante.",
     "",
-    "Note sur la coherence des donnees : le chiffre d'affaires, le taux d'occupation et l'ADR declares peuvent couvrir des perimetres ou des periodes differents (ex. : CA net vs brut, occupation annuelle vs saisonniere, ADR moyen vs prix rack). Ces ecarts sont normaux et n'invalident pas l'analyse.",
+    "Note sur la coherence des donnees : le CA declare peut inclure ou exclure la restauration, les transferts et les extras. L'occupation peut etre annuelle ou saisonniere. L'ADR peut etre le prix moyen effectif ou le prix rack. Le calcul d'opportunite se base sur le CA total declare ; si celui-ci ne couvre qu'une partie de l'activite, l'opportunite reelle peut etre superieure.",
     "",
     "Les projections financieres (pages 7-8) sont des estimations fondees sur des hypotheses de recuperation partielle. Elles ne constituent pas une garantie de resultat.",
   ];
@@ -466,8 +466,8 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   const dirDiff = form.direct_percent - bench.direct;
   const benchRows = [
     ["ADR (prix moyen)", fmt(form.current_price_mad) + " MAD", fmt(bench.adr) + " MAD", (adrDiff >= 0 ? "+" : "") + fmt(adrDiff) + " MAD"],
-    ["Note Booking", form.booking_score + "/10", bench.booking + "/10", (bkDiff >= 0 ? "+" : "") + bkDiff],
-    ["Avis Booking", String(form.booking_reviews), String(bench.reviews), (revDiff >= 0 ? "+" : "") + revDiff],
+    ["Note Booking (seul)", form.booking_score + "/10", bench.booking + "/10", (bkDiff >= 0 ? "+" : "") + bkDiff],
+    ["Avis Booking (seul)", String(form.booking_reviews), String(bench.reviews), (revDiff >= 0 ? "+" : "") + revDiff],
     ["Reservations directes", form.direct_percent + "%", bench.direct + "%", (dirDiff >= 0 ? "+" : "") + dirDiff + " pts"],
   ];
   autoTable(doc, {
@@ -681,7 +681,7 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.text("Projection a 12 mois", M, 25);
   y = 42;
   const projRows = [
-    ["A 3 mois", fmt(gain3) + " MAD", (Math.round((score + (target12 - score) * 0.25) * 10) / 10) + "/100"],
+    ["A 3 mois", fmt(gain3) + " MAD", target90 + "/100"],
     ["A 6 mois", fmt(gain6) + " MAD", (Math.round((score + (target12 - score) * 0.55) * 10) / 10) + "/100"],
     ["A 12 mois", fmt(gain12) + " MAD", target12 + "/100"],
   ];
@@ -711,7 +711,10 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.setFontSize(9);
   doc.text("Potentiel recuperable total : " + fmt(recov) + " MAD. Le gain a 12 mois represente 85% de ce potentiel.", M, y);
   y += 8;
-  doc.text("Opportunite residuelle a 12 mois : " + fmt(residuel12) + " MAD (potentiel restant a capter au-dela de la premiere annee).", M, y);
+    const residuelRecup = recov - gain12;
+  doc.text("Potentiel recuperable non encore capte a 12 mois : " + fmt(residuelRecup) + " MAD.", M, y);
+  y += 8;
+  doc.text("Potentiel theorique non capte : " + fmt(residuel12) + " MAD (ecart entre l'opportunite centrale et le gain projete).", M, y);
   y += 14;
   doc.setTextColor(150, 150, 150);
   doc.setFontSize(8);
