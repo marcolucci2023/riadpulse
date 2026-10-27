@@ -1,7 +1,7 @@
 "use client";
 
 export default function WhatsAppButton() {
-  const phone = "212600000000";
+  const phone = "+212694835695";
   const message = encodeURIComponent(
     "Bonjour, je suis interesse par un audit RiadPulse pour mon etablissement."
   );
