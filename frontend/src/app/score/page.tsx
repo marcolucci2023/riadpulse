@@ -392,10 +392,10 @@ export default function ScorePage() {
             <div className="bg-[#0f1d32] border border-white/[0.06] rounded-xl p-6">
               <h3 className="text-xs uppercase tracking-widest text-white/30 mb-5">Detail par module</h3>
               {[
-                { key: "pricing", label: "Prix & Tarifs", score: recalc.modules.pricing, weight: 25, icon: Icons.tag },
-                { key: "reputation", label: "Reputation", score: recalc.modules.reputation, weight: 25, icon: Icons.star },
-                { key: "revenue", label: "Revenus", score: recalc.modules.revenue, weight: 25, icon: Icons.chart },
-                { key: "distribution", label: "Distribution", score: recalc.modules.distribution, weight: 25, icon: Icons.globe },
+                { key: "pricing", label: "Prix & Tarifs", score: recalc.modules.pricing, weight: 0.25, icon: Icons.tag },
+                { key: "reputation", label: "Reputation", score: recalc.modules.reputation, weight: 0.25, icon: Icons.star },
+                { key: "revenue", label: "Revenus", score: recalc.modules.revenue, weight: 0.25, icon: Icons.chart },
+                { key: "distribution", label: "Distribution", score: recalc.modules.distribution, weight: 0.25, icon: Icons.globe },
               ].map((m) => {
                 return (
                 <ScoreBar
