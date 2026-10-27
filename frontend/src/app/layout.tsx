@@ -1,3 +1,4 @@
+import WhatsAppButton from "@/components/WhatsAppButton";
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col bg-[#0a1628] text-gray-100">
         <main className="flex-1">{children}</main>
         <Footer />
+	<WhatsAppButton />
       </body>
     </html>
   );
