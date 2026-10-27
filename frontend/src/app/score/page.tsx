@@ -329,28 +329,30 @@ export default function ScorePage() {
         </form>
 
         {/* ── RÉSULTATS ── */}
-        {result && (
+        {result && (() => {
+            const recalc = recalcScore({ city, stars: Number(stars) || 3, adr: Number(price) || 0, directPct: Number(direct) || 0, responseRate: Number(responseRate) || 0, bookingScore: Number(bookingScore) || 0, taScore: Number(taScore) || 0, googleScore: Number(googleScore) || 0, totalReviews: (Number(bookingReviews) || 0) + (Number(taReviews) || 0) + (Number(googleReviews) || 0), occupancyRate: (Number(occupancy) || 60) / 100, ca: Number(revenue) || 0 });
+            return (
           <div className="mt-14 space-y-6">
 
             {/* SCORE GLOBAL */}
             <div className="bg-[#0f1d32] border border-white/[0.06] rounded-2xl p-8 text-center">
               <p className="text-xs uppercase tracking-widest text-white/30 mb-4">Score Global RiadPulse</p>
               <div className="flex items-center justify-center gap-4 mb-5">
-                <span className="text-6xl font-bold tracking-tight text-[#f4a261]">{recalcScore({ city, stars: Number(stars) || 3, adr: Number(price) || 0, directPct: Number(direct) || 0, responseRate: Number(responseRate) || 0, bookingScore: Number(bookingScore) || 0, taScore: Number(taScore) || 0, googleScore: Number(googleScore) || 0, totalReviews: (Number(bookingReviews) || 0) + (Number(taReviews) || 0) + (Number(googleReviews) || 0), occupancyRate: (Number(occupancy) || 60) / 100, ca: Number(revenue) || 0 }).score}</span>
+                <span className="text-6xl font-bold tracking-tight text-[#f4a261]">{recalc.score}</span>
                 <div className="text-left">
                   <span className="text-xl text-white/20">/100</span>
-                  <div className="mt-1"><GradeBadge grade={recalcScore({ city, stars: Number(stars) || 3, adr: Number(price) || 0, directPct: Number(direct) || 0, responseRate: Number(responseRate) || 0, bookingScore: Number(bookingScore) || 0, taScore: Number(taScore) || 0, googleScore: Number(googleScore) || 0, totalReviews: (Number(bookingReviews) || 0) + (Number(taReviews) || 0) + (Number(googleReviews) || 0), occupancyRate: (Number(occupancy) || 60) / 100, ca: Number(revenue) || 0 }).grade} /></div>
+                  <div className="mt-1"><GradeBadge grade={recalc.grade} /></div>
                 </div>
               </div>
 
-              {recalcScore({ city, stars: Number(stars) || 3, adr: Number(price) || 0, directPct: Number(direct) || 0, responseRate: Number(responseRate) || 0, bookingScore: Number(bookingScore) || 0, taScore: Number(taScore) || 0, googleScore: Number(googleScore) || 0, totalReviews: (Number(bookingReviews) || 0) + (Number(taReviews) || 0) + (Number(googleReviews) || 0), occupancyRate: (Number(occupancy) || 60) / 100, ca: Number(revenue) || 0 }).central > 0 && (
+              {recalc.central > 0 && (
                 <div className="bg-red-500/[0.06] border border-red-500/10 rounded-xl p-4 mt-5 inline-block">
                   <div className="flex items-center gap-2 text-red-400/70 text-xs mb-1">
                     <Icon d={Icons.warning} size={14} />
                     Manque a gagner estime
                   </div>
                   <p className="text-2xl font-bold text-red-400">
-                    {recalcScore({ city, stars: Number(stars) || 3, adr: Number(price) || 0, directPct: Number(direct) || 0, responseRate: Number(responseRate) || 0, bookingScore: Number(bookingScore) || 0, taScore: Number(taScore) || 0, googleScore: Number(googleScore) || 0, totalReviews: (Number(bookingReviews) || 0) + (Number(taReviews) || 0) + (Number(googleReviews) || 0), occupancyRate: (Number(occupancy) || 60) / 100, ca: Number(revenue) || 0 }).central.toLocaleString("fr-FR")} MAD
+                    {recalc.central.toLocaleString("fr-FR")} MAD
                     <span className="text-sm font-normal text-red-400/50 ml-1">/an</span>
                   </p>
                   <p className="text-red-400/40 text-xs mt-0.5">
@@ -378,19 +380,23 @@ export default function ScorePage() {
             {/* SOUS-SCORES */}
             <div className="bg-[#0f1d32] border border-white/[0.06] rounded-xl p-6">
               <h3 className="text-xs uppercase tracking-widest text-white/30 mb-5">Detail par module</h3>
-              {Object.entries(result.sub_scores).map(([key, sub]) => {
-                const meta = MODULE_META[key] || { label: key, icon: Icons.check };
+              {[
+                { key: "pricing", label: "Prix & Tarifs", score: recalc.modules.pricing, weight: 25, icon: Icons.tag },
+                { key: "reputation", label: "Reputation", score: recalc.modules.reputation, weight: 25, icon: Icons.star },
+                { key: "revenue", label: "Revenus", score: recalc.modules.revenue, weight: 25, icon: Icons.chart },
+                { key: "distribution", label: "Distribution", score: recalc.modules.distribution, weight: 25, icon: Icons.globe },
+              ].map((m) => {
                 return (
-                  <ScoreBar
-                    key={key}
-                    label={meta.label}
-                    score={sub.score}
-                    grade={sub.grade}
-                    weight={sub.weight}
-                    icon={meta.icon}
-                  />
-                );
-              })}
+                <ScoreBar
+                  key={m.key}
+                  label={m.label}
+                  score={m.score}
+                  grade={m.score >= 85 ? "A" : m.score >= 70 ? "B" : m.score >= 55 ? "C" : m.score >= 40 ? "D" : "F"}
+                  weight={m.weight}
+                  icon={m.icon}
+                />
+              );
+            })}
             </div>
 
             {/* PRIORITÉS */}
@@ -442,7 +448,8 @@ export default function ScorePage() {
               ))}
             </div>
           </div>
-        )}
+            );
+          })()}
       </main>
     </div>
   );
