@@ -238,7 +238,7 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   /* --- Construire les 4 modules : backend si dispo, sinon calcule --- */
   const pricingScore = mapped.pricing?.score ?? calcPricingScore(form, bench);
   const distribScore = mapped.distribution?.score ?? calcDistributionScore(form, bench);
-  const reputScore = mapped.reputation?.score ?? calcReputationScore(form);
+  const reputScore = calcReputationScore(form);
   const revenueScore = mapped.revenue?.score ?? calcRevenueScore(form);
 
   const w1 = mapped.pricing?.weight ?? 0.25;
@@ -616,7 +616,7 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     doc.setFont("helvetica", "normal");
     let at = "";
     if (m.key === "pricing") at = "Mettre en place une grille tarifaire saisonniere dynamique. Ajuster les prix selon la demande, les evenements locaux et le delai de reservation.";
-    else if (m.key === "distribution") { if (m.score >= 80) at = "Protection : votre distribution est deja performante. Maintenez vos efforts sur le canal direct et surveillez l'evolution des commissions OTA."; else at = "Developper le canal direct via un moteur de reservation integre, des offres exclusives site web et une strategie d'email marketing post-sejour."; }
+    else if (m.key === "distribution") { if (m.score >= 80 && form.direct_percent >= bench.direct) at = "Protection : votre distribution est deja performante. Maintenez vos efforts sur le canal direct et surveillez l'evolution des commissions OTA."; else at = "Developper le canal direct via un moteur de reservation integre, des offres exclusives site web et une strategie d'email marketing post-sejour."; }
     else if (m.key === "reputation") { if (m.score >= 80) at = "Protection : votre reputation est un atout majeur. Continuez a repondre a 100% des avis et a encourager les clients satisfaits a partager leur experience."; else at = "Instaurer un processus de reponse aux avis sous 24h. Solliciter activement les avis post-sejour par email et WhatsApp."; }
     else if (m.key === "revenue") at = "Optimiser le taux d'occupation en basse saison via des packages et promotions cibles. Diversifier les sources de revenus (transferts, experiences, F&B).";
     doc.text(doc.splitTextToSize(at, CW - 16).slice(0, 3), M + 10, y + 18);
