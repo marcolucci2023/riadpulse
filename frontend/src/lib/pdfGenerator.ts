@@ -470,11 +470,11 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   const mp = [
-    "Ce rapport est genere a partir des donnees que vous avez declarees (chiffre d'affaires, taux d'occupation, repartition des canaux, notes et avis) ainsi que de benchmarks publics du secteur hotelier marocain (Observatoire du Tourisme 2023-2024).",
+    "Ce rapport est genere a partir des donnees que vous avez declarees (chiffre d'affaires, taux d'occupation, repartition des canaux, notes et avis) ainsi que de benchmarks publics du secteur hotelier marocain (Observatoire du Tourisme Maroc 2024-2025 et donnees OTA publiques 2025).",
     "",
-    "Niveau de confiance : Moyen.",
+    "Niveau de confiance : " + (score >= 75 ? "Eleve" : score >= 55 ? "Moyen" : "Faible") + ". Les donnees declarees n'ont pas ete verifiees de maniere independante. Le niveau de confiance reflete la coherence interne de vos donnees.",
     "",
-    "Le score global est calcule comme la moyenne ponderee des 4 modules affiches (Prix, Distribution, Reputation, Revenus). Les donnees declarees n'ont pas ete verifiees de maniere independante.",
+    "Le score global est calcule comme la moyenne ponderee des 4 modules affiches (Prix, Distribution, Reputation, Revenus).",
     "",
     "Note sur la coherence des donnees : le CA declare peut inclure ou exclure la restauration, les transferts et les extras. L'occupation peut etre annuelle ou saisonniere. L'ADR peut etre le prix moyen effectif ou le prix rack. Le calcul d'opportunite se base sur le CA total declare ; si celui-ci ne couvre qu'une partie de l'activite, l'opportunite reelle peut etre superieure.",
     "",
@@ -694,10 +694,33 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text("Objectif : +" + weakestGain + " pts sur " + weakest.label + " (de " + weakest.score + " a " + (weakest.score + weakestGain) + "), soit +" + globalGain90 + " pts sur le score global vers " + target90 + "/100.", M, 34);
+  const planActions = (wk: string): { t1: string[]; t2: string[]; t3: string[] } => {
+    if (wk === "pricing") return {
+      t1: ["Appliquer 2 corrections tarifaires immediates (haute/basse saison)", "Creer une grille de prix par periode sur votre Channel Manager", "Verifier que vos tarifs site web sont 10-15% inferieurs a Booking"],
+      t2: ["Tester une hausse de 10% sur les chambres les plus demandees", "Mettre en place des tarifs last-minute (-15%) pour combler les trous", "Comparer vos prix chaque semaine avec 3 concurrents directs"],
+      t3: ["Mesurer l'impact sur l'ADR et l'occupation vs mois precedent", "Ajuster la grille selon les resultats", "Preparer la strategie tarifaire du trimestre suivant"],
+    };
+    if (wk === "reputation") return {
+      t1: ["Repondre a tous les avis en attente (Booking, TripAdvisor, Google)", "Creer 3 templates de reponse (positif, neutre, negatif)", "Mettre en place un rappel automatique post-sejour par WhatsApp"],
+      t2: ["Solliciter activement les avis des clients satisfaits au check-out", "Analyser les avis negatifs pour identifier les problemes recurrents", "Corriger les 2 problemes les plus mentionnes dans les avis"],
+      t3: ["Mesurer l'evolution de la note moyenne et du volume d'avis", "Ajuster les templates selon les retours", "Preparer la strategie reputation du trimestre suivant"],
+    };
+    if (wk === "distribution") return {
+      t1: ["Analyser votre mix de canaux actuel et les commissions payees", "Negocier le programme Preferred Booking (15% au lieu de 18%)", "Ajouter un bouton de reservation directe sur votre site web"],
+      t2: ["Lancer 1 offre exclusive site web (petit-dejeuner offert, surclassement)", "Configurer un email post-sejour avec lien de reservation directe", "Reduire la dependance au canal le plus couteux de 5%"],
+      t3: ["Mesurer l'evolution du mix de canaux et des commissions", "Calculer les economies realisees vs trimestre precedent", "Preparer la strategie distribution du trimestre suivant"],
+    };
+    return {
+      t1: ["Identifier les 3 periodes les plus creuses de l'annee", "Creer 2 packages promotionnels pour la basse saison", "Mettre en place un suivi hebdomadaire occupation + ADR"],
+      t2: ["Lancer les packages basse saison sur Booking et le site web", "Diversifier les revenus : transferts, experiences, petit-dejeuner", "Optimiser le calendrier de fermeture/ouverture des chambres"],
+      t3: ["Mesurer l'impact sur le taux d'occupation annuel", "Comparer le RevPAR vs trimestre precedent", "Preparer la strategie revenus du trimestre suivant"],
+    };
+  };
+  const pa = planActions(weakest.key);
   const phases = [
-    { title: "Jours 1-30 : Fondations", items: ["Auditer la grille tarifaire de " + weakest.label.toLowerCase() + " et identifier les incoherences", "Mettre en place un tableau de bord de suivi hebdomadaire", "Former l'equipe aux bonnes pratiques identifiees dans ce rapport"] },
-    { title: "Jours 31-60 : Acceleration", items: ["Deployer les premieres actions correctives sur " + weakest.label.toLowerCase(), "Tester 2 a 3 leviers de croissance a fort impact", "Mesurer les premiers resultats et ajuster la strategie"] },
-    { title: "Jours 61-90 : Consolidation", items: ["Evaluer la progression : objectif " + target90 + "/100 sur le score global", "Automatiser les processus qui ont fait leurs preuves", "Preparer le plan trimestriel suivant"] },
+    { title: "Jours 1-15 : Actions immediates", items: pa.t1 },
+    { title: "Jours 16-45 : Acceleration", items: pa.t2 },
+    { title: "Jours 46-90 : Mesure et ajustement", items: pa.t3 },
   ];
   y = 46;
   phases.forEach((ph) => {
@@ -787,7 +810,7 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   y = 42;
   const offers = [
     { name: "Audit Flash", price: "500 MAD", desc: "Diagnostic rapide de votre presence en ligne. Score global, 3 recommandations cles, benchmark local.", tag: "" },
-    { name: "Audit Complet + Video", price: "1 500 MAD", desc: "Analyse approfondie avec rapport detaille, video de 15 min commentee, plan d'action 90 jours et calculateur de commissions personnalise.", tag: "RECOMMANDE" },
+    { name: "Audit Complet + Plan d'Action", price: "1 500 MAD", desc: "Analyse approfondie avec rapport detaille 20 pages, plan d'action 90 jours personnalise, calculateur de commissions exact et 1 appel de restitution de 30 min.", tag: "RECOMMANDE" },
     { name: "Suivi mensuel", price: "700 MAD/mois", desc: "Accompagnement continu : suivi des KPIs, ajustement de la strategie tarifaire, optimisation de la distribution, reporting mensuel.", tag: "" },
   ];
   offers.forEach((o) => {
@@ -854,7 +877,7 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.setTextColor(200, 200, 200);
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.text("Recevez votre Audit Complet + Video de 15 min pour 1 500 MAD.", M + 5, y + 19);
+  doc.text("Recevez votre Audit Complet + Plan d'Action personnalise pour 1 500 MAD.", M + 5, y + 19);
   doc.text("Contactez-nous des maintenant pour passer a l'action.", M + 5, y + 26);
   doc.setTextColor(100, 100, 100);
   doc.setFontSize(7);

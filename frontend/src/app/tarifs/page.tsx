@@ -16,14 +16,14 @@ const plans = [
     highlight: false,
   },
   {
-    name: "Audit Complet + Video",
+    name: "Audit Complet + Plan d'Action",
     price: "1 500",
     unit: "MAD",
     desc: "Analyse approfondie avec plan d'action detaille.",
     features: [
       "Score global + 4 modules detailles",
       "Rapport PDF 10 pages",
-      "Video 15 min commentee",
+      "Appel de restitution 30 min",
       "Plan d'action 90 jours",
       "Calculateur de commissions",
       "Benchmark local complet",
