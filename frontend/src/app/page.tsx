@@ -154,7 +154,8 @@ export default function Home() {
     <div className="min-h-screen bg-[#0a1628] text-white font-sans antialiased">
 
       {/* ── NAV ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#0a1628]/80 backdrop-blur-xl">
+      <div className="fixed top-0 left-0 right-0 z-[60] bg-[#e76f51]/10 border-b border-[#e76f51]/20 py-2 px-4 text-center text-xs sm:text-sm text-[#f4a261]"><span className="font-medium">Gratuit</span><span className="mx-2 text-white/20">|</span><span className="font-medium">Sans inscription</span><span className="mx-2 text-white/20">|</span><span className="font-medium">100% confidentiel</span><span className="mx-2 text-white/20">|</span><span className="text-white/50">par Omar, RiadPulse</span></div>
+      <nav className="fixed top-10 left-0 right-0 z-50 border-b border-white/5 bg-[#0a1628]/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="text-xl font-bold tracking-tight">
             Riad<span className="text-[#e76f51]">Pulse</span>
@@ -166,11 +167,8 @@ export default function Home() {
             <a href="#tarifs" className="hover:text-white transition-colors">Tarifs</a>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
-              Connexion
-            </Link>
             <Link
-              href="/register"
+              href="/score"
               className="text-sm px-4 py-2 rounded-lg bg-[#e76f51] hover:bg-[#d4603f] text-white font-medium transition-colors"
             >
               Commencer
@@ -204,7 +202,7 @@ export default function Home() {
 
             <div className="flex flex-wrap gap-4">
               <Link
-                href="/register"
+                href="/score"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#e76f51] hover:bg-[#d4603f] text-white font-semibold transition-all hover:shadow-lg hover:shadow-[#e76f51]/20"
               >
                 Lancer mon audit gratuit
@@ -407,7 +405,7 @@ export default function Home() {
 
             <div className="flex justify-center">
               <Link
-                href="/register"
+                href="/score"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-[#e76f51] hover:bg-[#d4603f] text-white font-semibold transition-all"
               >
                 Obtenir mon diagnostic
@@ -505,7 +503,7 @@ export default function Home() {
             Rejoignez les riads et hôtels qui ont déjà identifié leurs leviers de croissance.
           </p>
           <Link
-            href="/register"
+            href="/score"
             className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#e76f51] to-[#f4a261] hover:shadow-xl hover:shadow-[#e76f51]/20 text-white font-bold text-lg transition-all"
           >
             Commencer gratuitement
