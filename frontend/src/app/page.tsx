@@ -435,7 +435,7 @@ export default function Home() {
             <div className="bg-[#0f1d32] border border-white/[0.06] rounded-2xl p-8 flex flex-col">
               <p className="text-sm text-gray-500 uppercase tracking-wider">Audit Flash</p>
               <div className="mt-4 mb-6">
-                <span className="text-4xl font-bold text-white">500</span>
+                <span className="text-4xl font-bold text-white">490</span>
                 <span className="text-gray-500 ml-2">MAD</span>
               </div>
               <p className="text-gray-400 text-sm mb-6">Diagnostic rapide de votre presence en ligne.</p>
@@ -453,7 +453,7 @@ export default function Home() {
             {/* Complet */}
             <div className="bg-[#1a2a44] border-2 border-[#e76f51] rounded-2xl p-8 flex flex-col relative">
               <span className="absolute -top-3 right-6 bg-[#e76f51] text-white text-xs font-bold px-4 py-1 rounded-full">RECOMMANDE</span>
-              <p className="text-sm text-[#f4a261] uppercase tracking-wider">Audit Complet + Video</p>
+              <p className="text-sm text-[#f4a261] uppercase tracking-wider">Audit Complet + Plan d'Action</p>
               <div className="mt-4 mb-6">
                 <span className="text-4xl font-bold text-white">1 500</span>
                 <span className="text-gray-500 ml-2">MAD</span>
@@ -462,7 +462,7 @@ export default function Home() {
               <ul className="space-y-3 text-sm text-gray-300 flex-1">
                 <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Score global + 4 modules</li>
                 <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Rapport PDF 10 pages</li>
-                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Video 15 min commentee</li>
+                <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Appel de restitution 30 min</li>
                 <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Plan d'action 90 jours</li>
                 <li className="flex items-start gap-2"><span className="text-[#25D366] mt-0.5">&#10003;</span>Calculateur commissions</li>
               </ul>
