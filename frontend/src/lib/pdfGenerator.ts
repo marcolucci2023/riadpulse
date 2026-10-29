@@ -436,7 +436,10 @@ export function generatePDF(result: AuditResult, form: FormData): void {
     doc.setFont("helvetica", "normal");
     const diag = moduleDiag(m.key, m.score, form, bench);
     const dl = doc.splitTextToSize(diag, CW - 10);
-    doc.text(dl.slice(0, 2), M + 5, y + 16);
+    const visibleDiag = dl.length > 2
+      ? [dl[0], dl[1].replace(/[,.]$/, "") + "..."]
+      : dl;
+    doc.text(visibleDiag, M + 5, y + 16);
     y += 38;
   });
   y += 5;
@@ -809,7 +812,7 @@ export function generatePDF(result: AuditResult, form: FormData): void {
   doc.text("Nos offres d'accompagnement", M, 25);
   y = 42;
   const offers = [
-    { name: "Audit Flash", price: "500 MAD", desc: "Diagnostic rapide de votre presence en ligne. Score global, 3 recommandations cles, benchmark local.", tag: "" },
+    { name: "Audit Flash", price: "490 MAD", desc: "Diagnostic rapide de votre presence en ligne. Score global, 3 recommandations cles, benchmark local.", tag: "" },
     { name: "Audit Complet + Plan d'Action", price: "1 500 MAD", desc: "Analyse approfondie avec rapport detaille 20 pages, plan d'action 90 jours personnalise, calculateur de commissions exact et 1 appel de restitution de 30 min.", tag: "RECOMMANDE" },
     { name: "Suivi mensuel", price: "700 MAD/mois", desc: "Accompagnement continu : suivi des KPIs, ajustement de la strategie tarifaire, optimisation de la distribution, reporting mensuel.", tag: "" },
   ];
