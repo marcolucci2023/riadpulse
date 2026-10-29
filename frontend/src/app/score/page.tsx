@@ -173,8 +173,8 @@ export default function ScorePage() {
         total_annual_loss_eur: Math.round(recalc.perteTheo / 11),
         sub_scores,
         top_priorities: [
-          { rank: 1, module: weakest[0], title: "Priorite 1", detail: "Module le plus faible a ameliorer", impact_mad: Math.round(recalc.perteTheo * 0.4), difficulty: "Moyen" },
-          { rank: 2, module: sorted[1][0], title: "Priorite 2", detail: "Deuxieme levier de croissance", impact_mad: Math.round(recalc.perteTheo * 0.25), difficulty: "Facile" },
+          { rank: 1, module: weakest[0], title: weakest[0] === "revenue" ? "Optimiser l'occupation" : weakest[0] === "pricing" ? "Ajuster la grille tarifaire" : weakest[0] === "distribution" ? "Developper le canal direct" : "Proteger la reputation", detail: weakest[0] === "revenue" ? "Taux d'occupation sous la mediane locale" : weakest[0] === "pricing" ? "ADR a repositionner selon la saison" : weakest[0] === "distribution" ? "Trop de dependance aux OTA" : "Maintenir les avis positifs", impact_mad: Math.round(recalc.perteTheo * 0.4), difficulty: "Moyen" },
+          { rank: 2, module: sorted[1][0], title: sorted[1][0] === "revenue" ? "Diversifier les revenus" : sorted[1][0] === "pricing" ? "Dynamiser les prix" : sorted[1][0] === "distribution" ? "Fideliser les clients directs" : "Encourager les avis clients", detail: sorted[1][0] === "revenue" ? "Packages, experiences, F&B" : sorted[1][0] === "pricing" ? "Tarifs saisonniers et early bird" : sorted[1][0] === "distribution" ? "Email marketing et offres exclusives" : "Repondre a 100% des avis", impact_mad: Math.round(recalc.perteTheo * 0.25), difficulty: "Facile" },
         ],
         city_position: "Top " + Math.max(10, 100 - Math.round(recalc.score)) + "% a " + city,
         modules: { pricing: { score: mods.pricing, grade: mGrade(mods.pricing) }, reputation: { score: mods.reputation, grade: mGrade(mods.reputation) }, distribution: { score: mods.distribution, grade: mGrade(mods.distribution) }, revenue: { score: mods.revenue, grade: mGrade(mods.revenue) } },
