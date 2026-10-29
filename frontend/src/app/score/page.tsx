@@ -7,7 +7,7 @@ import { runGlobalAudit, GlobalAuditResponse } from "@/lib/api";
 import { generatePDF } from "@/lib/pdfGenerator";
 import { recalcScore } from "@/lib/scoring";
 
-const CITIES = ["Marrakech", "Fès", "Essaouira", "Chefchaouen", "Tanger", "Rabat"];
+const CITIES = ["Marrakech", "Fes", "Essaouira", "Chefchaouen", "Tanger", "Rabat", "Casablanca", "El Jadida"];
 
 /* ── SVG Icons (Heroicons outline, strokeWidth 1.5) ── */
 const Icon = ({ d, size = 20 }: { d: string; size?: number }) => (
