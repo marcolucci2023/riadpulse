@@ -112,6 +112,10 @@ export default function ScorePage() {
       return;
     }
     setLoading(true);
+    if (!Number(price) || !Number(revenue) || !Number(rooms)) {
+      setError("Veuillez remplir au minimum : prix moyen, nombre de chambres et CA annuel.");
+      return;
+    }
     setError("");
     setResult(null);
     try {
